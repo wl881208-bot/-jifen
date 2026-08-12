@@ -161,23 +161,23 @@ export const RedemptionVerification: React.FC<RedemptionVerificationProps> = ({
         )}
 
         {/* Manual Code Input Bar */}
-        <div className="flex items-center space-x-2 bg-slate-800/90 p-1.5 sm:p-2 rounded-2xl border border-slate-700">
-          <QrCode className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400 ml-1.5 shrink-0" />
+        <div className="flex items-center space-x-1.5 sm:space-x-2 bg-slate-800/90 p-1.5 sm:p-2.5 rounded-2xl border border-slate-700/80 min-w-0">
+          <QrCode className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400 ml-1 shrink-0" />
           <input
             type="text"
             value={inputCode}
             onChange={(e) => setInputCode(e.target.value.toUpperCase())}
             onKeyDown={(e) => e.key === 'Enter' && handleVerify()}
-            placeholder="输入 8 位核销码"
+            placeholder="输入8位核销码"
             className="flex-1 bg-transparent text-white placeholder-slate-400 text-xs sm:text-sm font-mono font-bold focus:outline-none px-1 uppercase min-w-0"
           />
           <button
             onClick={() => handleVerify()}
             disabled={!inputCode.trim() || isVerifying}
-            className="bg-red-600 hover:bg-red-700 disabled:bg-slate-700 text-white font-bold text-xs px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl transition-all shadow-md shrink-0 flex items-center space-x-1 whitespace-nowrap"
+            className="bg-red-600 hover:bg-red-700 disabled:bg-slate-700 text-white font-bold text-xs px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl transition-all shadow-md shrink-0 flex items-center space-x-1 whitespace-nowrap"
           >
-            <Check className="w-4 h-4 shrink-0" />
-            <span>{isVerifying ? '核验中...' : '立即核销'}</span>
+            <Check className="w-3.5 h-3.5 shrink-0" />
+            <span>{isVerifying ? '核验中' : '立即核销'}</span>
           </button>
         </div>
       </div>
@@ -223,60 +223,50 @@ export const RedemptionVerification: React.FC<RedemptionVerificationProps> = ({
 
       {/* Redemptions Log Table / List */}
       <div className="bg-white rounded-3xl border border-slate-200 p-3.5 sm:p-5 space-y-3.5 shadow-xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-          <div className="flex items-center justify-between w-full sm:w-auto">
-            <div className="flex items-center space-x-2">
+        <div className="space-y-3">
+          {/* Header Row */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center space-x-2 min-w-0">
               <GiftIcon className="w-5 h-5 text-red-600 shrink-0" />
-              <h3 className="font-bold text-slate-900 text-sm sm:text-base">礼品核销记录汇总</h3>
+              <h3 className="font-bold text-slate-900 text-sm sm:text-base truncate">礼品核销记录汇总</h3>
             </div>
 
             <button
               onClick={handleExportRedemptionsCSV}
-              className="sm:hidden px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-700 font-semibold rounded-xl text-[11px] flex items-center space-x-1 border border-red-200 transition-colors shrink-0"
-              title="导出礼品核销记录表 CSV"
-            >
-              <Download className="w-3 h-3 shrink-0" />
-              <span>导出</span>
-            </button>
-          </div>
-
-          <div className="flex items-center space-x-2 justify-between sm:justify-end">
-            <button
-              onClick={handleExportRedemptionsCSV}
-              className="hidden sm:flex px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 font-semibold rounded-xl text-xs items-center space-x-1 border border-red-200 transition-colors shadow-2xs shrink-0"
+              className="px-2.5 py-1.5 sm:px-3 bg-red-50 hover:bg-red-100 text-red-700 font-semibold rounded-xl text-[11px] sm:text-xs flex items-center space-x-1 border border-red-200 transition-colors shadow-2xs shrink-0"
               title="导出礼品核销记录表 CSV"
             >
               <Download className="w-3.5 h-3.5 shrink-0" />
               <span>导出核销表</span>
             </button>
+          </div>
 
-            {/* Filter Tabs */}
-            <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl text-xs w-full sm:w-auto justify-between sm:justify-start">
-              <button
-                onClick={() => setTableFilter('all')}
-                className={`flex-1 sm:flex-none px-2.5 sm:px-3 py-1 font-semibold rounded-lg text-center transition-colors text-[11px] sm:text-xs ${
-                  tableFilter === 'all' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500'
-                }`}
-              >
-                全部
-              </button>
-              <button
-                onClick={() => setTableFilter('pending')}
-                className={`flex-1 sm:flex-none px-2.5 sm:px-3 py-1 font-semibold rounded-lg text-center transition-colors text-[11px] sm:text-xs ${
-                  tableFilter === 'pending' ? 'bg-amber-400 text-slate-950 font-bold shadow-xs' : 'text-slate-500'
-                }`}
-              >
-                待现场核销
-              </button>
-              <button
-                onClick={() => setTableFilter('redeemed')}
-                className={`flex-1 sm:flex-none px-2.5 sm:px-3 py-1 font-semibold rounded-lg text-center transition-colors text-[11px] sm:text-xs ${
-                  tableFilter === 'redeemed' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-500'
-                }`}
-              >
-                已核销领奖
-              </button>
-            </div>
+          {/* Filter Tabs Row */}
+          <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl text-xs w-full">
+            <button
+              onClick={() => setTableFilter('all')}
+              className={`flex-1 py-1.5 font-semibold rounded-lg text-center transition-colors text-[11px] sm:text-xs ${
+                tableFilter === 'all' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              全部
+            </button>
+            <button
+              onClick={() => setTableFilter('pending')}
+              className={`flex-1 py-1.5 font-semibold rounded-lg text-center transition-colors text-[11px] sm:text-xs ${
+                tableFilter === 'pending' ? 'bg-amber-400 text-slate-950 font-bold shadow-xs' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              待核销
+            </button>
+            <button
+              onClick={() => setTableFilter('redeemed')}
+              className={`flex-1 py-1.5 font-semibold rounded-lg text-center transition-colors text-[11px] sm:text-xs ${
+                tableFilter === 'redeemed' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              已核销
+            </button>
           </div>
         </div>
 

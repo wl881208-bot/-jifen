@@ -43,35 +43,37 @@ export const MyProfile: React.FC<MyProfileProps> = ({
     <div className="space-y-5 pb-20 md:pb-10">
       
       {/* User Header Profile Card */}
-      <div className="bg-white rounded-3xl p-6 border border-slate-200/90 shadow-xs space-y-4">
-        <div className="flex items-center space-x-4">
-          <div className="text-5xl bg-red-50 p-3 rounded-2xl border border-red-100 shrink-0">
+      <div className="bg-white rounded-3xl p-3.5 sm:p-6 border border-slate-200/90 shadow-xs space-y-3 sm:space-y-4">
+        <div className="flex items-start sm:items-center space-x-3 sm:space-x-4">
+          <div className="text-3xl sm:text-4xl bg-red-50 p-2 sm:p-3 rounded-2xl border border-red-100 shrink-0 mt-0.5 sm:mt-0">
             {currentUser.avatar}
           </div>
-          <div className="space-y-1">
-            <div className="flex items-center space-x-2">
-              <h2 className="text-xl font-bold text-slate-900">{currentUser.name}</h2>
-              <span className="bg-amber-100 text-amber-900 font-bold text-xs px-2.5 py-0.5 rounded-full">
+          <div className="space-y-1 min-w-0 flex-1">
+            <div className="flex items-center space-x-1.5 sm:space-x-2 flex-wrap gap-y-1">
+              <h2 className="text-base sm:text-xl font-bold text-slate-900 truncate">{currentUser.name}</h2>
+              <span className="bg-amber-100 text-amber-900 font-bold text-[10px] sm:text-xs px-2 py-0.5 rounded-full shrink-0">
                 {currentUser.badge}
               </span>
             </div>
-            <p className="text-xs text-slate-500">联系电话: {currentUser.phone} · 入会时间: {currentUser.joinedDate}</p>
-            <div className="flex items-center space-x-1.5 text-xs text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100 w-fit">
-              <span className="font-semibold">微信 OpenID 绑定:</span>
-              <span className="font-mono text-[11px] font-bold text-emerald-800">{currentUser.openid || 'mock_openid_resident_001'}</span>
+            <p className="text-[11px] sm:text-xs text-slate-500 leading-tight">
+              联系电话: {currentUser.phone} <span className="hidden xs:inline">·</span> <br className="xs:hidden" />入会时间: {currentUser.joinedDate}
+            </p>
+            <div className="flex items-center space-x-1 text-[10px] sm:text-xs text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100 w-fit max-w-full">
+              <span className="font-semibold shrink-0">微信 OpenID:</span>
+              <span className="font-mono text-[10px] sm:text-[11px] font-bold text-emerald-800 truncate">{currentUser.openid || 'mock_openid_resident_001'}</span>
             </div>
           </div>
         </div>
 
         {/* Stats Row */}
-        <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-100">
-          <div className="bg-amber-50/60 p-3 rounded-2xl border border-amber-100 text-center">
-            <div className="text-[11px] text-amber-800 font-medium">当前可用积分</div>
-            <div className="text-2xl font-extrabold text-amber-600">{currentUser.points} <span className="text-xs">分</span></div>
+        <div className="grid grid-cols-2 gap-2.5 pt-2.5 border-t border-slate-100">
+          <div className="bg-amber-50/60 p-2.5 sm:p-3 rounded-2xl border border-amber-100 text-center">
+            <div className="text-[10px] sm:text-[11px] text-amber-800 font-medium">当前可用积分</div>
+            <div className="text-xl sm:text-2xl font-extrabold text-amber-600">{currentUser.points} <span className="text-xs">分</span></div>
           </div>
-          <div className="bg-emerald-50/60 p-3 rounded-2xl border border-emerald-100 text-center">
-            <div className="text-[11px] text-emerald-800 font-medium">累计志愿服务工时</div>
-            <div className="text-2xl font-extrabold text-emerald-600">{currentUser.totalHours} <span className="text-xs">小时</span></div>
+          <div className="bg-emerald-50/60 p-2.5 sm:p-3 rounded-2xl border border-emerald-100 text-center">
+            <div className="text-[10px] sm:text-[11px] text-emerald-800 font-medium">累计志愿服务工时</div>
+            <div className="text-xl sm:text-2xl font-extrabold text-emerald-600">{currentUser.totalHours} <span className="text-xs">小时</span></div>
           </div>
         </div>
       </div>

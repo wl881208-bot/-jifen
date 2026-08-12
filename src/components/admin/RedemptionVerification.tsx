@@ -13,7 +13,8 @@ import {
   Gift as GiftIcon, 
   User as UserIcon,
   ShieldCheck,
-  Check
+  Check,
+  Download
 } from 'lucide-react';
 
 interface RedemptionVerificationProps {
@@ -41,6 +42,32 @@ export const RedemptionVerification: React.FC<RedemptionVerificationProps> = ({
 
   // Pending redemptions list for quick testing scan
   const pendingRedemptions = redemptions.filter(r => r.status === 'pending');
+
+  const handleExportRedemptionsCSV = () => {
+    const headers = ['核销单号', '8位核销码', '居民姓名', '联系电话', '兑换礼品名称', '消耗积分', '核销状态', '核销人员', '兑换时间', '核销时间'];
+    const rows = redemptions.map(r => [
+      r.id,
+      r.code,
+      r.userName,
+      r.userPhone || '未填写',
+      `"${r.giftName.replace(/"/g, '""')}"`,
+      r.pointsCost,
+      r.status === 'redeemed' ? '已核销领奖' : r.status === 'expired' ? '已过期' : '待核销领奖',
+      r.verifierName || '无',
+      r.createdAt,
+      r.redeemedAt || '未核销'
+    ]);
+
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `社区礼品核销记录表_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const handleVerify = async (codeToVerify?: string) => {
     const code = (codeToVerify || inputCode).trim();
@@ -203,6 +230,15 @@ export const RedemptionVerification: React.FC<RedemptionVerificationProps> = ({
           </div>
 
           <div className="flex items-center space-x-2">
+            <button
+              onClick={handleExportRedemptionsCSV}
+              className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 font-semibold rounded-xl text-xs flex items-center space-x-1 border border-red-200 transition-colors shadow-2xs"
+              title="导出礼品核销记录表 CSV"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>导出核销表</span>
+            </button>
+
             {/* Filter Tabs */}
             <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl text-xs">
               <button

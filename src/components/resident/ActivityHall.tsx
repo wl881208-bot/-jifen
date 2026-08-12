@@ -238,76 +238,79 @@ export const ActivityHall: React.FC<ActivityHallProps> = ({
                 </p>
 
                 {/* Info row */}
-                <div className="space-y-1.5 text-xs text-slate-500 pt-1 border-t border-slate-100">
-                  <div className="flex items-center space-x-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span className="truncate">{act.location}</span>
+                <div className="bg-slate-50/80 p-2.5 sm:p-3 rounded-xl border border-slate-100 space-y-2 text-xs text-slate-600">
+                  <div className="flex items-start space-x-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-red-500 shrink-0 mt-0.5" />
+                    <span className="font-medium text-slate-800 leading-snug">{act.location}</span>
                   </div>
                   <div className="flex items-center space-x-1.5">
-                    <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>{act.date}</span>
+                    <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                    <span className="font-medium text-slate-700">{act.date}</span>
                   </div>
-                  <div className="flex items-center justify-between text-[11px]">
-                    <div className="flex items-center space-x-1 text-slate-500">
-                      <Building className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{act.organizer}</span>
+                  <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-slate-200/60 gap-1">
+                    <div className="flex items-center space-x-1 text-slate-500 min-w-0 flex-1">
+                      <Building className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span className="truncate">{act.organizer}</span>
                     </div>
-                    <div className="flex items-center space-x-1 font-medium text-slate-600">
-                      <Users className="w-3.5 h-3.5 text-slate-400" />
+                    <div className="flex items-center space-x-1 font-semibold text-slate-700 shrink-0 bg-white px-2 py-0.5 rounded-md border border-slate-200/60 shadow-2xs">
+                      <Users className="w-3.5 h-3.5 text-blue-500 shrink-0" />
                       <span>已报 {act.signedCount} / 名额 {act.maxSeats}</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Action buttons */}
-                <div className="flex items-center space-x-2 pt-2">
-                  <button
-                    onClick={() => setActiveDetailModal(act)}
-                    className="py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs transition-colors shrink-0"
-                  >
-                    查看详情
-                  </button>
+                <div className="pt-1.5 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center space-x-1.5">
+                    <button
+                      onClick={() => setActiveDetailModal(act)}
+                      className="py-1.5 px-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-[11px] sm:text-xs transition-colors shrink-0"
+                    >
+                      详情
+                    </button>
 
-                  <button
-                    onClick={() => setPosterModalActivity(act)}
-                    className="py-2 px-2.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200/80 font-semibold rounded-xl text-xs transition-colors flex items-center space-x-1 shrink-0"
-                    title="生成朋友圈宣传海报"
-                  >
-                    <QrCode className="w-3.5 h-3.5 text-amber-600" />
-                    <span className="hidden sm:inline">生成海报</span>
-                  </button>
+                    <button
+                      onClick={() => setPosterModalActivity(act)}
+                      className="py-1.5 px-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200/80 font-semibold rounded-xl text-[11px] sm:text-xs transition-colors flex items-center space-x-1 shrink-0"
+                      title="生成朋友圈宣传海报"
+                    >
+                      <QrCode className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                      <span>海报</span>
+                    </button>
+                  </div>
 
-                  {isRegistered ? (
-                    <div className="flex items-center space-x-2 flex-1">
-                      <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center space-x-1 w-full">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>{myReg?.status === 'completed' ? '已发放积分' : '已报名'}</span>
-                      </span>
+                  <div className="flex items-center space-x-1.5 shrink-0">
+                    {isRegistered ? (
+                      <>
+                        <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1.5 rounded-xl text-[11px] font-bold flex items-center space-x-1">
+                          <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-600" />
+                          <span>{myReg?.status === 'completed' ? '已发放积分' : '已报名'}</span>
+                        </span>
 
-                      {/* Button to submit service proof / hours claim if registered */}
+                        <button
+                          onClick={() => setClaimProofModal(act)}
+                          className="py-1.5 px-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-[11px] shadow-xs active:scale-95 transition-all"
+                        >
+                          提交打卡
+                        </button>
+                      </>
+                    ) : act.status === 'recruiting' && !isFull ? (
                       <button
-                        onClick={() => setClaimProofModal(act)}
-                        className="py-2 px-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-xs whitespace-nowrap shadow-xs"
+                        onClick={() => handleConfirmRegister(act)}
+                        disabled={isRegistering}
+                        className="py-1.5 px-3.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-[11px] sm:text-xs transition-colors shadow-xs"
                       >
-                        提交工打卡
+                        立即报名
                       </button>
-                    </div>
-                  ) : act.status === 'recruiting' && !isFull ? (
-                    <button
-                      onClick={() => handleConfirmRegister(act)}
-                      disabled={isRegistering}
-                      className="flex-1 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs transition-colors shadow-xs"
-                    >
-                      立即报名
-                    </button>
-                  ) : (
-                    <button
-                      disabled
-                      className="flex-1 py-2 bg-slate-100 text-slate-400 font-medium rounded-xl text-xs cursor-not-allowed"
-                    >
-                      {isFull ? '名额已满' : '已结束招募'}
-                    </button>
-                  )}
+                    ) : (
+                      <button
+                        disabled
+                        className="py-1.5 px-3 bg-slate-100 text-slate-400 font-medium rounded-xl text-[11px]"
+                      >
+                        {isFull ? '名额已满' : '报名已截止'}
+                      </button>
+                    )}
+                  </div>
                 </div>
 
               </div>

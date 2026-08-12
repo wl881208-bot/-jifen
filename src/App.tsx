@@ -43,7 +43,7 @@ import { ActivityManage } from './components/admin/ActivityManage';
 import { AuditHours } from './components/admin/AuditHours';
 import { GiftManage } from './components/admin/GiftManage';
 import { RedemptionVerification } from './components/admin/RedemptionVerification';
-import { X, Send } from 'lucide-react';
+import { X, Send, Smartphone, Maximize2, Minimize2, Monitor, Info, Wifi } from 'lucide-react';
 
 export default function App() {
   // Real-time State
@@ -59,6 +59,9 @@ export default function App() {
   const [currentRole, setCurrentRole] = useState<'resident' | 'admin'>('resident');
   const [residentTab, setResidentTab] = useState<ResidentTab>('home');
   const [adminTab, setAdminTab] = useState<AdminTab>('verification_admin');
+
+  // Mobile Shell Simulation Toggle (Default enabled)
+  const [isMobileSimulated, setIsMobileSimulated] = useState<boolean>(true);
 
   // Active User (Defaults to 张兰英 user_1)
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -257,118 +260,296 @@ export default function App() {
         onUserSelect={handleUserSelect}
         onResetData={handleResetData}
         isResetting={isResetting}
+        isMobileSimulated={isMobileSimulated}
+        onToggleMobileSimulator={() => setIsMobileSimulated(!isMobileSimulated)}
       />
 
-      {/* Navigation Subnav / Mobile Bottom Bar */}
-      <BottomNav
-        currentRole={currentRole}
-        residentTab={residentTab}
-        adminTab={adminTab}
-        onResidentTabChange={(tab) => setResidentTab(tab)}
-        onAdminTabChange={(tab) => setAdminTab(tab)}
-        pendingAuditsCount={pendingAuditsCount}
-      />
-
-      {/* Main Content Area */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-5">
-        
-        {/* Global Notification Toast */}
-        {toastMessage && (
-          <div className="fixed top-20 right-4 z-50 bg-slate-900 text-white px-4 py-2.5 rounded-2xl shadow-2xl text-xs font-semibold animate-fade-in border border-slate-700 flex items-center space-x-2">
-            <span>✨ {toastMessage}</span>
+      {/* Main Core View Area - Normal vs Smartphone Shell */}
+      {isMobileSimulated ? (
+        <div className="py-6 px-2 flex flex-col items-center justify-center bg-slate-900/95 min-h-[calc(100vh-64px)]">
+          {/* Top Info Banner for Simulator */}
+          <div className="mb-4 bg-slate-800/90 text-slate-200 border border-slate-700/80 px-4 py-2 rounded-2xl text-xs flex items-center space-x-3 shadow-lg">
+            <div className="flex items-center space-x-1.5 text-emerald-400 font-bold">
+              <Smartphone className="w-4 h-4" />
+              <span>iPhone 15 Pro / 微信 H5 拟真手机外壳模式</span>
+            </div>
+            <span className="text-slate-600">|</span>
+            <button
+              onClick={() => setIsMobileSimulated(false)}
+              className="text-amber-400 hover:text-amber-300 font-semibold underline flex items-center space-x-1"
+            >
+              <Monitor className="w-3.5 h-3.5" />
+              <span>还原网页全屏</span>
+            </button>
           </div>
-        )}
 
-        {/* RESIDENT MODE VIEWS */}
-        {currentRole === 'resident' && (
-          <>
-            {residentTab === 'home' && (
-              <ResidentHome
-                currentUser={currentUser}
-                activities={activities}
-                pointsHistory={pointsHistory}
-                redemptions={redemptions}
-                onNavigateTab={(tab) => setResidentTab(tab)}
-                onOpenActivityDetail={(act) => {
-                  setSelectedActivityForDetail(act);
-                  setResidentTab('activities');
-                }}
-                onOpenClaimModal={() => setGlobalClaimModalOpen(true)}
+          {/* iPhone Physical Device Outer Shell */}
+          <div className="relative w-[390px] max-w-full h-[760px] bg-slate-950 rounded-[48px] p-3 shadow-2xl border-4 border-slate-700 ring-1 ring-white/20 flex flex-col overflow-hidden">
+            
+            {/* iOS Status Bar */}
+            <div className="bg-red-600 text-white px-6 pt-2 pb-1 flex items-center justify-between text-[11px] font-semibold shrink-0 select-none">
+              <span>09:41</span>
+              {/* Dynamic Island / Notch */}
+              <div className="w-20 h-4 bg-black rounded-full flex items-center justify-center space-x-1 border border-slate-800">
+                <div className="w-2 h-2 rounded-full bg-blue-900/80"></div>
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+              </div>
+              <div className="flex items-center space-x-1 text-[10px]">
+                <Wifi className="w-3 h-3" />
+                <span>5G</span>
+              </div>
+            </div>
+
+            {/* WeChat H5 Capsule Navigation Header */}
+            <div className="bg-red-600 text-white px-4 py-2 flex items-center justify-between shrink-0 select-none border-b border-red-700">
+              <div className="flex items-center space-x-1.5">
+                <span className="text-[10px] bg-red-700/90 px-2 py-0.5 rounded-full font-mono text-white/90">微信H5</span>
+                <span className="text-xs font-bold truncate max-w-[130px]">幸福社区志愿服务</span>
+              </div>
+              {/* WeChat Capsule Button */}
+              <div className="bg-black/25 backdrop-blur-md rounded-full px-2.5 py-0.5 flex items-center space-x-2 border border-white/20 text-xs">
+                <span className="text-white font-bold tracking-tighter">•••</span>
+                <span className="text-white/30">|</span>
+                <span className="text-white font-bold text-sm">⊙</span>
+              </div>
+            </div>
+
+            {/* Phone Screen Inner Container */}
+            <div className="flex-1 overflow-hidden bg-slate-100/95 text-slate-900 relative flex flex-col">
+              
+              {/* Scrollable View Area */}
+              <div className="flex-1 overflow-y-auto p-3 pb-20 custom-scrollbar">
+                {/* Global Notification Toast */}
+                {toastMessage && (
+                  <div className="mb-3 bg-slate-900 text-white px-3 py-2 rounded-xl shadow-lg text-xs font-semibold border border-slate-700 flex items-center space-x-1">
+                    <span>✨ {toastMessage}</span>
+                  </div>
+                )}
+
+                {/* Resident Mode Views */}
+                {currentRole === 'resident' && (
+                  <>
+                    {residentTab === 'home' && (
+                      <ResidentHome
+                        currentUser={currentUser}
+                        activities={activities}
+                        pointsHistory={pointsHistory}
+                        redemptions={redemptions}
+                        onNavigateTab={(tab) => setResidentTab(tab)}
+                        onOpenActivityDetail={(act) => {
+                          setSelectedActivityForDetail(act);
+                          setResidentTab('activities');
+                        }}
+                        onOpenClaimModal={() => setGlobalClaimModalOpen(true)}
+                      />
+                    )}
+
+                    {residentTab === 'activities' && (
+                      <ActivityHall
+                        currentUser={currentUser}
+                        activities={activities}
+                        myRegistrations={registrations.filter(r => r.userId === currentUser.id)}
+                        onRegister={handleRegisterForActivity}
+                        onSubmitServiceProof={handleSubmitServiceProof}
+                        selectedActivityForDetail={selectedActivityForDetail}
+                        onClearSelectedActivity={() => setSelectedActivityForDetail(null)}
+                      />
+                    )}
+
+                    {residentTab === 'mall' && (
+                      <PointsMall
+                        currentUser={currentUser}
+                        gifts={gifts}
+                        onRedeemGift={handleRedeemGift}
+                        onNavigateToRedemptions={() => setResidentTab('profile')}
+                      />
+                    )}
+
+                    {residentTab === 'profile' && (
+                      <MyProfile
+                        currentUser={currentUser}
+                        registrations={registrations}
+                        serviceRecords={serviceRecords}
+                        redemptions={redemptions}
+                        pointsHistory={pointsHistory}
+                      />
+                    )}
+                  </>
+                )}
+
+                {/* Administrator Mode Views */}
+                {currentRole === 'admin' && (
+                  <>
+                    {adminTab === 'activities_admin' && (
+                      <ActivityManage
+                        activities={activities}
+                        registrations={registrations}
+                        onCreateActivity={createActivity}
+                        onUpdateActivity={updateActivity}
+                        onDeleteActivity={deleteActivity}
+                      />
+                    )}
+
+                    {adminTab === 'audits_admin' && (
+                      <AuditHours
+                        serviceRecords={serviceRecords}
+                        onAuditRecord={auditServiceRecord}
+                      />
+                    )}
+
+                    {adminTab === 'gifts_admin' && (
+                      <GiftManage
+                        gifts={gifts}
+                        onCreateGift={createGift}
+                        onUpdateGift={updateGift}
+                      />
+                    )}
+
+                    {adminTab === 'verification_admin' && (
+                      <RedemptionVerification
+                        redemptions={redemptions}
+                        currentUser={currentUser}
+                        onVerifyCode={handleVerifyRedemptionCode}
+                      />
+                    )}
+                  </>
+                )}
+              </div>
+
+              {/* Bottom Nav inside Phone Shell */}
+              <BottomNav
+                currentRole={currentRole}
+                residentTab={residentTab}
+                adminTab={adminTab}
+                onResidentTabChange={(tab) => setResidentTab(tab)}
+                onAdminTabChange={(tab) => setAdminTab(tab)}
+                pendingAuditsCount={pendingAuditsCount}
+                isMobileSimulated={true}
               />
+
+            </div>
+
+            {/* iOS Home Bar Indicator */}
+            <div className="bg-slate-900 pt-1.5 pb-2 flex justify-center shrink-0 border-t border-slate-800">
+              <div className="w-32 h-1 bg-slate-500 rounded-full"></div>
+            </div>
+
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Navigation Subnav / Mobile Bottom Bar */}
+          <BottomNav
+            currentRole={currentRole}
+            residentTab={residentTab}
+            adminTab={adminTab}
+            onResidentTabChange={(tab) => setResidentTab(tab)}
+            onAdminTabChange={(tab) => setAdminTab(tab)}
+            pendingAuditsCount={pendingAuditsCount}
+          />
+
+          {/* Main Content Area */}
+          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-5">
+            
+            {/* Global Notification Toast */}
+            {toastMessage && (
+              <div className="fixed top-20 right-4 z-50 bg-slate-900 text-white px-4 py-2.5 rounded-2xl shadow-2xl text-xs font-semibold animate-fade-in border border-slate-700 flex items-center space-x-2">
+                <span>✨ {toastMessage}</span>
+              </div>
             )}
 
-            {residentTab === 'activities' && (
-              <ActivityHall
-                currentUser={currentUser}
-                activities={activities}
-                myRegistrations={registrations.filter(r => r.userId === currentUser.id)}
-                onRegister={handleRegisterForActivity}
-                onSubmitServiceProof={handleSubmitServiceProof}
-                selectedActivityForDetail={selectedActivityForDetail}
-                onClearSelectedActivity={() => setSelectedActivityForDetail(null)}
-              />
+            {/* RESIDENT MODE VIEWS */}
+            {currentRole === 'resident' && (
+              <>
+                {residentTab === 'home' && (
+                  <ResidentHome
+                    currentUser={currentUser}
+                    activities={activities}
+                    pointsHistory={pointsHistory}
+                    redemptions={redemptions}
+                    onNavigateTab={(tab) => setResidentTab(tab)}
+                    onOpenActivityDetail={(act) => {
+                      setSelectedActivityForDetail(act);
+                      setResidentTab('activities');
+                    }}
+                    onOpenClaimModal={() => setGlobalClaimModalOpen(true)}
+                  />
+                )}
+
+                {residentTab === 'activities' && (
+                  <ActivityHall
+                    currentUser={currentUser}
+                    activities={activities}
+                    myRegistrations={registrations.filter(r => r.userId === currentUser.id)}
+                    onRegister={handleRegisterForActivity}
+                    onSubmitServiceProof={handleSubmitServiceProof}
+                    selectedActivityForDetail={selectedActivityForDetail}
+                    onClearSelectedActivity={() => setSelectedActivityForDetail(null)}
+                  />
+                )}
+
+                {residentTab === 'mall' && (
+                  <PointsMall
+                    currentUser={currentUser}
+                    gifts={gifts}
+                    onRedeemGift={handleRedeemGift}
+                    onNavigateToRedemptions={() => setResidentTab('profile')}
+                  />
+                )}
+
+                {residentTab === 'profile' && (
+                  <MyProfile
+                    currentUser={currentUser}
+                    registrations={registrations}
+                    serviceRecords={serviceRecords}
+                    redemptions={redemptions}
+                    pointsHistory={pointsHistory}
+                  />
+                )}
+              </>
             )}
 
-            {residentTab === 'mall' && (
-              <PointsMall
-                currentUser={currentUser}
-                gifts={gifts}
-                onRedeemGift={handleRedeemGift}
-                onNavigateToRedemptions={() => setResidentTab('profile')}
-              />
+            {/* ADMINISTRATOR MODE VIEWS */}
+            {currentRole === 'admin' && (
+              <>
+                {adminTab === 'activities_admin' && (
+                  <ActivityManage
+                    activities={activities}
+                    registrations={registrations}
+                    onCreateActivity={createActivity}
+                    onUpdateActivity={updateActivity}
+                    onDeleteActivity={deleteActivity}
+                  />
+                )}
+
+                {adminTab === 'audits_admin' && (
+                  <AuditHours
+                    serviceRecords={serviceRecords}
+                    onAuditRecord={auditServiceRecord}
+                  />
+                )}
+
+                {adminTab === 'gifts_admin' && (
+                  <GiftManage
+                    gifts={gifts}
+                    onCreateGift={createGift}
+                    onUpdateGift={updateGift}
+                  />
+                )}
+
+                {adminTab === 'verification_admin' && (
+                  <RedemptionVerification
+                    redemptions={redemptions}
+                    currentUser={currentUser}
+                    onVerifyCode={handleVerifyRedemptionCode}
+                  />
+                )}
+              </>
             )}
 
-            {residentTab === 'profile' && (
-              <MyProfile
-                currentUser={currentUser}
-                registrations={registrations}
-                serviceRecords={serviceRecords}
-                redemptions={redemptions}
-                pointsHistory={pointsHistory}
-              />
-            )}
-          </>
-        )}
-
-        {/* ADMINISTRATOR MODE VIEWS */}
-        {currentRole === 'admin' && (
-          <>
-            {adminTab === 'activities_admin' && (
-              <ActivityManage
-                activities={activities}
-                registrations={registrations}
-                onCreateActivity={createActivity}
-                onUpdateActivity={updateActivity}
-                onDeleteActivity={deleteActivity}
-              />
-            )}
-
-            {adminTab === 'audits_admin' && (
-              <AuditHours
-                serviceRecords={serviceRecords}
-                onAuditRecord={auditServiceRecord}
-              />
-            )}
-
-            {adminTab === 'gifts_admin' && (
-              <GiftManage
-                gifts={gifts}
-                onCreateGift={createGift}
-                onUpdateGift={updateGift}
-              />
-            )}
-
-            {adminTab === 'verification_admin' && (
-              <RedemptionVerification
-                redemptions={redemptions}
-                currentUser={currentUser}
-                onVerifyCode={handleVerifyRedemptionCode}
-              />
-            )}
-          </>
-        )}
-
-      </main>
+          </main>
+        </>
+      )}
 
       {/* Global Hour Claim / Service Proof Modal */}
       {globalClaimModalOpen && (

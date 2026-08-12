@@ -52,32 +52,32 @@ export const ResidentHome: React.FC<ResidentHomeProps> = ({
     <div className="space-y-6 pb-20 md:pb-10">
       
       {/* User Points & Hours Hero Banner */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-red-600 via-red-500 to-amber-600 rounded-3xl text-white shadow-xl p-6 sm:p-8">
+      <div className="relative overflow-hidden bg-gradient-to-br from-red-600 via-red-500 to-amber-600 rounded-3xl text-white shadow-xl p-4 sm:p-6">
         <div className="absolute -right-10 -bottom-10 opacity-10 pointer-events-none">
           <Award className="w-80 h-80 text-white" />
         </div>
 
         {/* User Info Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-3">
-            <div className="text-4xl bg-white/20 p-2 rounded-2xl backdrop-blur-md shadow-inner border border-white/30">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-2.5 min-w-0 pr-2">
+            <div className="text-3xl sm:text-4xl bg-white/20 p-2 rounded-2xl backdrop-blur-md shadow-inner border border-white/30 shrink-0">
               {currentUser.avatar}
             </div>
-            <div>
-              <div className="flex items-center space-x-2">
-                <h2 className="text-xl font-bold tracking-tight">{currentUser.name}</h2>
-                <span className="bg-amber-300 text-amber-950 font-bold text-[11px] px-2.5 py-0.5 rounded-full flex items-center space-x-1 shadow-xs">
+            <div className="min-w-0">
+              <div className="flex items-center space-x-1.5 flex-wrap gap-y-1">
+                <h2 className="text-base sm:text-xl font-bold tracking-tight truncate">{currentUser.name}</h2>
+                <span className="bg-amber-300 text-amber-950 font-bold text-[10px] sm:text-[11px] px-2 py-0.5 rounded-full flex items-center space-x-1 shadow-xs shrink-0">
                   <Sparkles className="w-3 h-3 text-amber-800" />
                   <span>{currentUser.badge}</span>
                 </span>
               </div>
-              <p className="text-xs text-red-100 mt-0.5">居民账号 · {currentUser.phone}</p>
+              <p className="text-[11px] sm:text-xs text-red-100 mt-0.5 truncate">居民账号 · {currentUser.phone}</p>
             </div>
           </div>
 
           <button
             onClick={() => onNavigateTab('profile')}
-            className="text-xs bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-full border border-white/20 backdrop-blur-sm transition-all flex items-center space-x-1"
+            className="text-[11px] sm:text-xs bg-white/15 hover:bg-white/25 px-2.5 py-1.5 rounded-full border border-white/20 backdrop-blur-sm transition-all flex items-center space-x-1 shrink-0"
           >
             <span>个人中心</span>
             <ChevronRight className="w-3.5 h-3.5" />
@@ -85,27 +85,27 @@ export const ResidentHome: React.FC<ResidentHomeProps> = ({
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-4 bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20">
+        <div className="grid grid-cols-2 gap-3 bg-white/10 backdrop-blur-md rounded-2xl p-3.5 border border-white/20">
           <div className="space-y-1">
-            <div className="flex items-center space-x-1.5 text-xs text-red-100 font-medium">
-              <Award className="w-4 h-4 text-amber-300" />
-              <span>当前可用积分</span>
+            <div className="flex items-center space-x-1 text-xs text-red-100 font-medium">
+              <Award className="w-4 h-4 text-amber-300 shrink-0" />
+              <span className="truncate">当前可用积分</span>
             </div>
             <div className="flex items-baseline space-x-1">
-              <span className="text-3xl font-extrabold text-amber-300 tracking-tight">
+              <span className="text-2xl sm:text-3xl font-extrabold text-amber-300 tracking-tight">
                 {currentUser.points}
               </span>
               <span className="text-xs text-red-100 font-medium">分</span>
             </div>
           </div>
 
-          <div className="space-y-1 border-l border-white/20 pl-4">
-            <div className="flex items-center space-x-1.5 text-xs text-red-100 font-medium">
-              <Clock className="w-4 h-4 text-emerald-300" />
-              <span>累计志愿工时</span>
+          <div className="space-y-1 border-l border-white/20 pl-3">
+            <div className="flex items-center space-x-1 text-xs text-red-100 font-medium">
+              <Clock className="w-4 h-4 text-emerald-300 shrink-0" />
+              <span className="truncate">累计志愿工时</span>
             </div>
             <div className="flex items-baseline space-x-1">
-              <span className="text-3xl font-extrabold text-emerald-300 tracking-tight">
+              <span className="text-2xl sm:text-3xl font-extrabold text-emerald-300 tracking-tight">
                 {currentUser.totalHours}
               </span>
               <span className="text-xs text-red-100 font-medium">小时</span>
@@ -117,13 +117,13 @@ export const ResidentHome: React.FC<ResidentHomeProps> = ({
         {pendingRedemptions.length > 0 && (
           <div 
             onClick={() => onNavigateTab('profile')}
-            className="mt-4 bg-amber-400/90 text-amber-950 px-3.5 py-2 rounded-xl flex items-center justify-between text-xs font-semibold cursor-pointer hover:bg-amber-300 transition-colors shadow-sm"
+            className="mt-3 bg-amber-400/90 text-amber-950 px-3 py-2 rounded-xl flex items-center justify-between text-xs font-semibold cursor-pointer hover:bg-amber-300 transition-colors shadow-sm"
           >
-            <div className="flex items-center space-x-2">
-              <QrCode className="w-4 h-4 text-amber-900 animate-bounce" />
-              <span>我有 {pendingRedemptions.length} 个礼品兑换码待现场核销领奖</span>
+            <div className="flex items-center space-x-1.5 min-w-0 pr-1">
+              <QrCode className="w-4 h-4 text-amber-900 animate-bounce shrink-0" />
+              <span className="truncate">我有 {pendingRedemptions.length} 个礼品兑换码待现场核销领奖</span>
             </div>
-            <span className="underline text-[11px] font-bold">查看核销码 &rarr;</span>
+            <span className="underline text-[11px] font-bold shrink-0 whitespace-nowrap">查看核销码 &rarr;</span>
           </div>
         )}
       </div>

@@ -1,5 +1,6 @@
 {
   "containerPort": 8080,
+  "healthCheckPath": "/health",
   "dockerfilePath": "Dockerfile",
   "buildDir": "",
   "minNum": 0,

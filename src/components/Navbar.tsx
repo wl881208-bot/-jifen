@@ -24,6 +24,8 @@ interface NavbarProps {
   onUserSelect: (user: User) => void;
   onResetData: () => void;
   isResetting: boolean;
+  isMobileSimulated?: boolean;
+  onToggleMobileSimulator?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -34,6 +36,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onUserSelect,
   onResetData,
   isResetting,
+  isMobileSimulated = false,
+  onToggleMobileSimulator,
 }) => {
   const [showUserDropdown, setShowUserDropdown] = React.useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
@@ -49,18 +53,18 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-red-600 text-white shadow-md">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+    <header className="sticky top-0 z-40 bg-red-600 text-white shadow-md select-none">
+      <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-14 sm:h-16">
           
           {/* Logo / Brand Title */}
-          <div className="flex items-center space-x-3">
-            <div className="bg-white/10 p-2 rounded-xl backdrop-blur-sm border border-white/20">
-              <HeartHandshake className="w-6 h-6 text-white" />
+          <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">
+            <div className="bg-white/10 p-1.5 sm:p-2 rounded-xl backdrop-blur-sm border border-white/20">
+              <HeartHandshake className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <span className="font-bold text-lg tracking-tight">幸福社区志愿服务</span>
+                <span className="font-bold text-base sm:text-lg tracking-tight truncate max-w-[140px] xs:max-w-none">幸福社区志愿服务</span>
                 <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full font-medium hidden sm:inline-block">
                   积分与礼品核销系统
                 </span>
@@ -70,13 +74,13 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           {/* Right Action Bar */}
-          <div className="flex items-center space-x-2 sm:space-x-3">
+          <div className="flex items-center space-x-1.5 sm:space-x-3">
             
             {/* Mode Switcher (Resident vs Admin) */}
-            <div className="bg-red-700/80 p-1 rounded-lg border border-red-500/40 flex items-center">
+            <div className="bg-red-700/80 p-0.5 sm:p-1 rounded-lg border border-red-500/40 flex items-center">
               <button
                 onClick={() => onRoleSwitch('resident')}
-                className={`px-2.5 py-1 text-xs font-medium rounded-md transition-all flex items-center space-x-1 ${
+                className={`px-2 py-1 text-[11px] sm:text-xs font-medium rounded-md transition-all flex items-center space-x-1 ${
                   currentRole === 'resident'
                     ? 'bg-white text-red-700 shadow-sm font-semibold'
                     : 'text-red-100 hover:text-white hover:bg-red-600/50'
@@ -84,11 +88,12 @@ export const Navbar: React.FC<NavbarProps> = ({
                 title="切换到社区居民端"
               >
                 <UserCheck className="w-3.5 h-3.5" />
-                <span>居民端</span>
+                <span className="hidden xs:inline">居民端</span>
+                <span className="xs:hidden">居民</span>
               </button>
               <button
                 onClick={() => onRoleSwitch('admin')}
-                className={`px-2.5 py-1 text-xs font-medium rounded-md transition-all flex items-center space-x-1 ${
+                className={`px-2 py-1 text-[11px] sm:text-xs font-medium rounded-md transition-all flex items-center space-x-1 ${
                   currentRole === 'admin'
                     ? 'bg-amber-400 text-slate-900 shadow-sm font-semibold'
                     : 'text-red-100 hover:text-white hover:bg-red-600/50'
@@ -96,7 +101,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                 title="切换到管理员后台"
               >
                 <ShieldCheck className="w-3.5 h-3.5" />
-                <span>后台核销</span>
+                <span className="hidden xs:inline">后台核销</span>
+                <span className="xs:hidden">后台</span>
               </button>
             </div>
 
@@ -159,6 +165,22 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </>
               )}
             </div>
+
+            {/* Mobile Simulator Toggle Button */}
+            {onToggleMobileSimulator && (
+              <button
+                onClick={onToggleMobileSimulator}
+                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all flex items-center space-x-1 shadow-xs border ${
+                  isMobileSimulated
+                    ? 'bg-emerald-400 text-slate-950 border-emerald-300'
+                    : 'bg-red-700/80 hover:bg-red-700 text-white border-red-500/50'
+                }`}
+                title={isMobileSimulated ? '切换回标准响应式视图' : '开启iPhone手机模拟外壳视图'}
+              >
+                <Smartphone className="w-3.5 h-3.5" />
+                <span>{isMobileSimulated ? '📱 手机框开启中' : '📱 模拟手机模式'}</span>
+              </button>
+            )}
 
             {/* Phone QR Code Scan Button */}
             <button

@@ -9,7 +9,8 @@ import {
   User, 
   FileText, 
   ShieldAlert, 
-  CheckCircle2 
+  CheckCircle2,
+  Download
 } from 'lucide-react';
 
 interface AuditHoursProps {
@@ -31,6 +32,31 @@ export const AuditHours: React.FC<AuditHoursProps> = ({
     return r.status === filter;
   });
 
+  const handleExportCSV = () => {
+    const headers = ['记录编号', '志愿者姓名', '联系电话', '志愿活动名称', '服务工时', '发放积分', '申报服务说明', '审核状态', '提交时间'];
+    const rows = serviceRecords.map(r => [
+      r.id,
+      r.userName,
+      r.userPhone || '未填写',
+      `"${r.activityTitle.replace(/"/g, '""')}"`,
+      r.hours,
+      r.pointsEarned,
+      `"${r.proofText.replace(/"/g, '""')}"`,
+      r.status === 'approved' ? '已通过' : r.status === 'rejected' ? '已驳回' : '待审核',
+      r.createdAt
+    ]);
+
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `社区志愿服务工时导出表_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleConfirmApprove = async (rec: ServiceRecord) => {
     setIsAuditing(true);
     await onAuditRecord(rec, true);
@@ -50,37 +76,51 @@ export const AuditHours: React.FC<AuditHoursProps> = ({
     <div className="space-y-5 pb-20 md:pb-10">
       
       {/* Top Header */}
-      <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-xs flex items-center justify-between">
+      <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-base font-bold text-slate-900">志愿服务工时与积分审核</h2>
+          <h2 className="text-base font-bold text-slate-900 flex items-center space-x-2">
+            <span>志愿服务工时与积分审核</span>
+            <span className="bg-slate-100 text-slate-600 text-[10px] font-semibold px-2 py-0.5 rounded-full">v2.0 优化版</span>
+          </h2>
           <p className="text-xs text-slate-500">审核居民打卡报告，通过后自动打入居民账户积分与服务工时</p>
         </div>
 
-        <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl text-xs">
+        <div className="flex items-center space-x-2">
           <button
-            onClick={() => setFilter('pending')}
-            className={`px-3 py-1.5 font-semibold rounded-lg transition-colors ${
-              filter === 'pending' ? 'bg-amber-400 text-slate-950 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
-            }`}
+            onClick={handleExportCSV}
+            className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold rounded-xl text-xs flex items-center space-x-1 border border-emerald-200 transition-colors shadow-2xs"
+            title="导出为 CSV 表格"
           >
-            待审核
+            <Download className="w-3.5 h-3.5" />
+            <span>导出工时报表</span>
           </button>
-          <button
-            onClick={() => setFilter('approved')}
-            className={`px-3 py-1.5 font-semibold rounded-lg transition-colors ${
-              filter === 'approved' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            已通过
-          </button>
-          <button
-            onClick={() => setFilter('all')}
-            className={`px-3 py-1.5 font-semibold rounded-lg transition-colors ${
-              filter === 'all' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            全部
-          </button>
+
+          <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl text-xs">
+            <button
+              onClick={() => setFilter('pending')}
+              className={`px-3 py-1.5 font-semibold rounded-lg transition-colors ${
+                filter === 'pending' ? 'bg-amber-400 text-slate-950 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              待审核
+            </button>
+            <button
+              onClick={() => setFilter('approved')}
+              className={`px-3 py-1.5 font-semibold rounded-lg transition-colors ${
+                filter === 'approved' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              已通过
+            </button>
+            <button
+              onClick={() => setFilter('all')}
+              className={`px-3 py-1.5 font-semibold rounded-lg transition-colors ${
+                filter === 'all' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              全部
+            </button>
+          </div>
         </div>
       </div>
 

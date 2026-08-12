@@ -754,6 +754,17 @@ async function startServer() {
 
   app.use(express.json());
 
+  // Healthcheck endpoints for TCB/EKS Liveness and Readiness Probes
+  app.get(['/health', '/api/health'], (_req, res) => {
+    res.status(200).json({
+      status: 'UP',
+      app: '社区志愿服务积分与礼品兑换系统',
+      version: '2.0.0-tcb',
+      environment: process.env.NODE_ENV || 'production',
+      timestamp: new Date().toISOString()
+    });
+  });
+
   // REST API Routes
   app.get('/api/db/all', (_req, res) => {
     res.json(db.getAllData());

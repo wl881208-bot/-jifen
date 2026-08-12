@@ -122,7 +122,7 @@ export const PointsMall: React.FC<PointsMallProps> = ({
       )}
 
       {/* Gifts Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3.5 sm:gap-4">
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
         {filteredGifts.length === 0 ? (
           <div className="col-span-full bg-white rounded-2xl p-8 text-center text-slate-400 space-y-2 border border-slate-200">
             <div className="text-3xl">🎁</div>
@@ -146,10 +146,10 @@ export const PointsMall: React.FC<PointsMallProps> = ({
                       alt={gift.name}
                       className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                     />
-                    <span className="absolute top-2 left-2 bg-slate-900/70 text-white text-[10px] px-2 py-0.5 rounded-md backdrop-blur-xs">
+                    <span className="absolute top-1.5 left-1.5 bg-slate-900/75 text-white text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded-md backdrop-blur-xs">
                       {gift.category}
                     </span>
-                    <span className={`absolute top-2 right-2 text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                    <span className={`absolute top-1.5 right-1.5 text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
                       hasStock ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'
                     }`}>
                       {hasStock ? `库存 ${gift.stock}` : '已售罄'}
@@ -157,28 +157,28 @@ export const PointsMall: React.FC<PointsMallProps> = ({
                   </div>
 
                   {/* Gift Info */}
-                  <div className="p-3 space-y-1">
-                    <h4 className="font-bold text-slate-800 text-xs sm:text-sm line-clamp-1">
+                  <div className="p-2.5 space-y-1">
+                    <h4 className="font-bold text-slate-800 text-xs truncate">
                       {gift.name}
                     </h4>
-                    <p className="text-[11px] text-slate-500 line-clamp-2 leading-tight">
+                    <p className="text-[10px] sm:text-[11px] text-slate-500 line-clamp-2 leading-tight">
                       {gift.description}
                     </p>
                   </div>
                 </div>
 
                 {/* Bottom Action Row */}
-                <div className="p-3 pt-0 space-y-2">
+                <div className="p-2.5 pt-0 space-y-1.5">
                   <div className="flex items-baseline justify-between">
-                    <span className="text-base sm:text-lg font-extrabold text-red-600">
-                      {gift.pointsCost} <span className="text-xs font-semibold">积分</span>
+                    <span className="text-sm sm:text-base font-extrabold text-red-600">
+                      {gift.pointsCost} <span className="text-[10px] font-semibold">积分</span>
                     </span>
                   </div>
 
                   <button
                     onClick={() => setConfirmModalGift(gift)}
                     disabled={!canAfford || !hasStock}
-                    className={`w-full py-2 rounded-xl text-xs font-bold transition-all ${
+                    className={`w-full py-1.5 rounded-xl text-[11px] font-bold transition-all ${
                       canAfford && hasStock
                         ? 'bg-amber-500 hover:bg-amber-600 text-slate-950 shadow-xs'
                         : 'bg-slate-100 text-slate-400 cursor-not-allowed'

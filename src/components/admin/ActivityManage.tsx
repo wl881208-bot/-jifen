@@ -29,7 +29,8 @@ export const ActivityManage: React.FC<ActivityManageProps> = ({
   onUpdateActivity,
   onDeleteActivity,
 }) => {
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
   const [viewRegistrationsActivity, setViewRegistrationsActivity] = useState<Activity | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -49,13 +50,8 @@ export const ActivityManage: React.FC<ActivityManageProps> = ({
 
   const categories = ['环保卫士', '关爱邻里', '平安社区', '便民服务', '文明创建'];
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.title || !formData.location || !formData.date) return;
-    setIsSubmitting(true);
-    await onCreateActivity(formData);
-    setIsSubmitting(false);
-    setShowCreateModal(false);
+  const handleOpenCreate = () => {
+    setEditingActivity(null);
     setFormData({
       title: '',
       location: '',
@@ -68,46 +64,78 @@ export const ActivityManage: React.FC<ActivityManageProps> = ({
       organizer: '幸福社区党群服务中心',
       status: 'recruiting',
     });
+    setShowModal(true);
+  };
+
+  const handleOpenEdit = (act: Activity) => {
+    setEditingActivity(act);
+    setFormData({
+      title: act.title,
+      location: act.location,
+      date: act.date,
+      hours: act.hours,
+      pointsReward: act.pointsReward,
+      maxSeats: act.maxSeats,
+      category: act.category,
+      description: act.description || '',
+      organizer: act.organizer || '幸福社区党群服务中心',
+      status: act.status,
+    });
+    setShowModal(true);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.title || !formData.location || !formData.date) return;
+    setIsSubmitting(true);
+    
+    if (editingActivity) {
+      await onUpdateActivity(editingActivity.id, formData);
+    } else {
+      await onCreateActivity(formData);
+    }
+
+    setIsSubmitting(false);
+    setShowModal(false);
+    setEditingActivity(null);
   };
 
   return (
     <div className="space-y-5 pb-20 md:pb-10">
       
       {/* Top Banner & Release Button */}
-      <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-xs flex items-center justify-between">
-        <div>
-          <h2 className="text-base font-bold text-slate-900">社区志愿服务活动管理</h2>
-          <p className="text-xs text-slate-500">创建新服务活动，设置奖励积分、名额与工时</p>
+      <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200/90 shadow-xs flex items-center justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-sm sm:text-base font-bold text-slate-900 truncate">社区志愿服务活动管理</h2>
+          <p className="text-[11px] sm:text-xs text-slate-500 truncate">创建或修改服务活动，设置奖励积分、名额与工时</p>
         </div>
         <button
-          onClick={() => setShowCreateModal(true)}
-          className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xs transition-colors flex items-center space-x-1.5"
+          onClick={handleOpenCreate}
+          className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl shadow-xs transition-colors flex items-center space-x-1.5 shrink-0"
         >
           <Plus className="w-4 h-4" />
-          <span>发布新活动</span>
+          <span className="whitespace-nowrap">发布新活动</span>
         </button>
       </div>
 
       {/* Activities List */}
       <div className="space-y-4">
         {activities.map((act) => {
-          const registeredUsers = registrations.filter(r => r.activityId === act.id);
-
           return (
             <div
               key={act.id}
               className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs space-y-3"
             >
-              <div className="flex items-start justify-between">
-                <div className="space-y-1">
-                  <div className="flex items-center space-x-2">
-                    <span className="bg-red-50 text-red-700 text-[10px] font-bold px-2 py-0.5 rounded-md border border-red-100">
+              <div className="flex items-start justify-between gap-2">
+                <div className="space-y-1 min-w-0 flex-1">
+                  <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                    <span className="bg-red-50 text-red-700 text-[10px] font-bold px-2 py-0.5 rounded-md border border-red-100 shrink-0">
                       {act.category}
                     </span>
                     <select
                       value={act.status}
                       onChange={(e) => onUpdateActivity(act.id, { status: e.target.value as Activity['status'] })}
-                      className="bg-slate-100 border border-slate-200 text-slate-800 text-[11px] font-bold px-2 py-0.5 rounded-md focus:outline-none"
+                      className="bg-slate-100 border border-slate-200 text-slate-800 text-[11px] font-bold px-2 py-0.5 rounded-md focus:outline-none shrink-0"
                     >
                       <option value="recruiting">招募中</option>
                       <option value="in_progress">进行中</option>
@@ -115,16 +143,24 @@ export const ActivityManage: React.FC<ActivityManageProps> = ({
                       <option value="cancelled">已取消</option>
                     </select>
                   </div>
-                  <h3 className="font-bold text-slate-900 text-base">{act.title}</h3>
+                  <h3 className="font-bold text-slate-900 text-sm sm:text-base leading-snug">{act.title}</h3>
                 </div>
 
-                <div className="flex items-center space-x-1 text-xs">
+                <div className="flex items-center space-x-1 text-xs shrink-0">
+                  <button
+                    onClick={() => handleOpenEdit(act)}
+                    className="p-1.5 px-2 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200/80 rounded-lg flex items-center space-x-1 font-semibold text-[11px] transition-colors"
+                    title="修改编辑活动信息"
+                  >
+                    <Edit className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                    <span>修改</span>
+                  </button>
                   <button
                     onClick={() => setViewRegistrationsActivity(act)}
-                    className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg flex items-center space-x-1 font-semibold"
+                    className="p-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg flex items-center space-x-1 font-semibold text-[11px]"
                     title="查看已报名人员"
                   >
-                    <Users className="w-3.5 h-3.5" />
+                    <Users className="w-3.5 h-3.5 shrink-0" />
                     <span>{act.signedCount}/{act.maxSeats}人</span>
                   </button>
                   <button
@@ -141,19 +177,26 @@ export const ActivityManage: React.FC<ActivityManageProps> = ({
                 <div>📍 地点: {act.location}</div>
                 <div>⏰ 时间: {act.date}</div>
                 <div>🎁 奖励: <span className="font-bold text-red-600">+{act.pointsReward} 积分</span> | 工时: <span className="font-bold text-emerald-700">{act.hours} 小时</span></div>
+                {act.description && (
+                  <div className="text-[11px] text-slate-500 pt-1 border-t border-slate-200/60 leading-relaxed">
+                    📝 描述: {act.description}
+                  </div>
+                )}
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* CREATE ACTIVITY MODAL */}
-      {showCreateModal && (
+      {/* CREATE / EDIT ACTIVITY MODAL */}
+      {showModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl animate-scale-up">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-6 space-y-4 shadow-2xl animate-scale-up my-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="font-bold text-slate-900 text-base">发布新志愿服务活动</h3>
-              <button onClick={() => setShowCreateModal(false)} className="p-1 text-slate-400 hover:text-slate-600">
+              <h3 className="font-bold text-slate-900 text-base">
+                {editingActivity ? '修改社区活动信息' : '发布新志愿服务活动'}
+              </h3>
+              <button onClick={() => setShowModal(false)} className="p-1 text-slate-400 hover:text-slate-600">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -261,17 +304,17 @@ export const ActivityManage: React.FC<ActivityManageProps> = ({
               <div className="flex items-center space-x-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="flex-1 py-2.5 border border-slate-200 text-slate-600 rounded-xl font-semibold"
+                  onClick={() => setShowModal(false)}
+                  className="flex-1 py-2.5 border border-slate-200 text-slate-600 rounded-xl font-semibold hover:bg-slate-50 transition-colors"
                 >
                   取消
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-md"
+                  className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-md transition-colors"
                 >
-                  {isSubmitting ? '发布中...' : '确认发布活动'}
+                  {isSubmitting ? (editingActivity ? '保存中...' : '发布中...') : (editingActivity ? '保存修改' : '确认发布活动')}
                 </button>
               </div>
             </form>

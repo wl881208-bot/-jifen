@@ -1,0 +1,127 @@
+{
+  "entities": {
+    "users": {
+      "title": "Users",
+      "description": "Community residents and administrators",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "avatar": { "type": "string" },
+        "role": { "type": "string", "enum": ["resident", "admin"] },
+        "points": { "type": "number" },
+        "totalHours": { "type": "number" },
+        "badge": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["name", "role", "points", "totalHours"]
+    },
+    "activities": {
+      "title": "Activities",
+      "description": "Volunteer service activities",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "location": { "type": "string" },
+        "date": { "type": "string" },
+        "hours": { "type": "number" },
+        "pointsReward": { "type": "number" },
+        "maxSeats": { "type": "number" },
+        "signedCount": { "type": "number" },
+        "status": { "type": "string", "enum": ["recruiting", "in_progress", "completed", "cancelled"] },
+        "category": { "type": "string" },
+        "description": { "type": "string" },
+        "organizer": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["title", "location", "date", "hours", "pointsReward", "maxSeats", "status"]
+    },
+    "registrations": {
+      "title": "Registrations",
+      "description": "User signups for activities",
+      "type": "object",
+      "properties": {
+        "activityId": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userPhone": { "type": "string" },
+        "activityTitle": { "type": "string" },
+        "status": { "type": "string", "enum": ["registered", "attended", "completed", "cancelled"] },
+        "hours": { "type": "number" },
+        "pointsReward": { "type": "number" },
+        "signedAt": { "type": "string" }
+      },
+      "required": ["activityId", "userId", "status"]
+    },
+    "service_records": {
+      "title": "Service Records",
+      "description": "Audit requests for volunteer service hours and points",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "activityId": { "type": "string" },
+        "activityTitle": { "type": "string" },
+        "hours": { "type": "number" },
+        "pointsEarned": { "type": "number" },
+        "proofText": { "type": "string" },
+        "proofImage": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "rejectReason": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "reviewedAt": { "type": "string" }
+      },
+      "required": ["userId", "hours", "status"]
+    },
+    "gifts": {
+      "title": "Gifts",
+      "description": "Gift items in the points mall",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "pointsCost": { "type": "number" },
+        "stock": { "type": "number" },
+        "category": { "type": "string" },
+        "image": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string", "enum": ["on_sale", "off_sale"] },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["name", "pointsCost", "stock", "status"]
+    },
+    "redemptions": {
+      "title": "Redemptions",
+      "description": "Gift redemption records with verification codes",
+      "type": "object",
+      "properties": {
+        "code": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userPhone": { "type": "string" },
+        "giftId": { "type": "string" },
+        "giftName": { "type": "string" },
+        "giftImage": { "type": "string" },
+        "pointsCost": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "redeemed", "expired"] },
+        "createdAt": { "type": "string" },
+        "redeemedAt": { "type": "string" },
+        "verifierName": { "type": "string" }
+      },
+      "required": ["code", "userId", "giftId", "status"]
+    },
+    "points_history": {
+      "title": "Points History",
+      "description": "Transaction logs of earned and spent points",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "type": { "type": "string", "enum": ["earn", "spend"] },
+        "amount": { "type": "number" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["userId", "type", "amount", "title"]
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "社区志愿服务积分与礼品兑换系统",
+  "description": "社区志愿服务积分与礼品兑换系统，提供居民服务工时记录、活动报名、积分商城兑换、二维码核销及管理员审核发布功能。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

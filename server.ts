@@ -1,5 +1,6 @@
 import express from 'express';
 import path from 'path';
+import fs from 'fs';
 import { createServer as createViteServer } from 'vite';
 
 // Types matching frontend
@@ -749,7 +750,7 @@ const db = new MockMySQLDatabase();
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 8080;
 
   app.use(express.json());
 
@@ -944,17 +945,29 @@ async function startServer() {
   });
 
   // Vite middleware for development vs static serve for production
-  if (process.env.NODE_ENV !== 'production') {
+  if (process.env.NODE_ENV === 'development') {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), 'dist');
+    let distPath = path.resolve(__dirname);
+    if (!fs.existsSync(path.join(distPath, 'index.html'))) {
+      distPath = path.resolve(process.cwd(), 'dist');
+    }
+    if (!fs.existsSync(path.join(distPath, 'index.html'))) {
+      distPath = process.cwd();
+    }
+
     app.use(express.static(distPath));
     app.get('*', (_req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+      const indexPath = path.join(distPath, 'index.html');
+      if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+      } else {
+        res.status(404).send('<h1>社区志愿服务系统 (TCB 运行中)</h1><p>未找到 index.html，请确保执行了 npm run build 打包</p>');
+      }
     });
   }
 

@@ -6,7 +6,9 @@ import {
   Redemption, 
   Registration, 
   PointsHistoryItem,
-  WechatLoginResponse
+  CommunityIssue,
+  WechatLoginResponse,
+  UserRole
 } from '../types';
 
 // Global Subscriber Store for Live Real-Time Updates across components
@@ -18,6 +20,7 @@ type CallbacksStore = {
   serviceRecords: Set<(data: ServiceRecord[]) => void>;
   redemptions: Set<(data: Redemption[]) => void>;
   pointsHistory: Set<(data: PointsHistoryItem[]) => void>;
+  issues: Set<(data: CommunityIssue[]) => void>;
 };
 
 const callbacks: CallbacksStore = {
@@ -28,6 +31,7 @@ const callbacks: CallbacksStore = {
   serviceRecords: new Set(),
   redemptions: new Set(),
   pointsHistory: new Set(),
+  issues: new Set(),
 };
 
 let pollInterval: any = null;
@@ -46,6 +50,7 @@ async function fetchAndNotifyAll() {
     if (data.serviceRecords) callbacks.serviceRecords.forEach(cb => cb(data.serviceRecords));
     if (data.redemptions) callbacks.redemptions.forEach(cb => cb(data.redemptions));
     if (data.pointsHistory) callbacks.pointsHistory.forEach(cb => cb(data.pointsHistory));
+    if (data.issues) callbacks.issues.forEach(cb => cb(data.issues));
   } catch (err) {
     console.warn('API fetch error:', err);
   }
@@ -121,7 +126,92 @@ export function subscribeToPointsHistory(callback: (history: PointsHistoryItem[]
   return () => { callbacks.pointsHistory.delete(callback); };
 }
 
+export function subscribeToIssues(callback: (issues: CommunityIssue[]) => void) {
+  callbacks.issues.add(callback);
+  startGlobalPolling();
+  return () => { callbacks.issues.delete(callback); };
+}
+
 // User Actions
+export async function createUser(userData: Partial<User>): Promise<{ success: boolean; data?: User; message?: string }> {
+  try {
+    const res = await fetch('/api/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(userData),
+    });
+    const json = await res.json();
+    await fetchAndNotifyAll();
+    return json;
+  } catch (err: any) {
+    return { success: false, message: '创建用户失败: ' + err.message };
+  }
+}
+
+export async function updateUser(userId: string, updates: Partial<User>): Promise<{ success: boolean; message?: string }> {
+  try {
+    const res = await fetch(`/api/users/${userId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    });
+    const json = await res.json();
+    await fetchAndNotifyAll();
+    return json;
+  } catch (err: any) {
+    return { success: false, message: '更新用户失败: ' + err.message };
+  }
+}
+
+export async function deleteUser(userId: string): Promise<{ success: boolean; message?: string }> {
+  try {
+    const res = await fetch(`/api/users/${userId}`, {
+      method: 'DELETE',
+    });
+    const json = await res.json();
+    await fetchAndNotifyAll();
+    return json;
+  } catch (err: any) {
+    return { success: false, message: '删除用户失败: ' + err.message };
+  }
+}
+
+export async function setUserRole(userId: string, role: UserRole): Promise<{ success: boolean; message?: string }> {
+  try {
+    const res = await fetch(`/api/users/${userId}/role`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role }),
+    });
+    const json = await res.json();
+    await fetchAndNotifyAll();
+    return json;
+  } catch (err: any) {
+    return { success: false, message: '设置权限失败: ' + err.message };
+  }
+}
+
+export async function adjustUserPoints(
+  userId: string, 
+  pointsDelta: number, 
+  hoursDelta: number, 
+  reason: string, 
+  adminName: string
+): Promise<{ success: boolean; message?: string }> {
+  try {
+    const res = await fetch(`/api/users/${userId}/adjust`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pointsDelta, hoursDelta, reason, adminName }),
+    });
+    const json = await res.json();
+    await fetchAndNotifyAll();
+    return json;
+  } catch (err: any) {
+    return { success: false, message: '积分工时调整失败: ' + err.message };
+  }
+}
+
 export async function updateUserPointsAndHours(userId: string, pointsDelta: number, hoursDelta: number) {
   await fetch('/api/users/points-hours', {
     method: 'POST',
@@ -277,3 +367,92 @@ export async function getWechatAuthUrl(redirectUri?: string): Promise<{ success:
   const res = await fetch(url);
   return await res.json();
 }
+
+// Native WeChat Mini-Program API Helpers
+export async function miniProgramLogin(jsCode?: string) {
+  const res = await fetch('/api/wechat/miniprogram/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ js_code: jsCode || `mock_jscode_${Date.now()}` }),
+  });
+  const json = await res.json();
+  await fetchAndNotifyAll();
+  return json;
+}
+
+export async function miniProgramGetPhoneNumber(userId: string, phone?: string) {
+  const res = await fetch('/api/wechat/miniprogram/get-phone-number', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId, phone }),
+  });
+  const json = await res.json();
+  await fetchAndNotifyAll();
+  return json;
+}
+
+export async function miniProgramExportSource() {
+  const res = await fetch('/api/wechat/miniprogram/export-source');
+  return await res.json();
+}
+
+export async function miniProgramSubscribeMessage(templateId: string, title: string, content: string, userId: string) {
+  const res = await fetch('/api/wechat/miniprogram/subscribe-message', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ templateId, title, content, userId }),
+  });
+  return await res.json();
+}
+
+// Community Issues (随手拍) Actions
+export async function submitCommunityIssue(issueData: Omit<CommunityIssue, 'id' | 'createdAt' | 'status'>): Promise<{ success: boolean; data?: CommunityIssue; message?: string }> {
+  try {
+    const res = await fetch('/api/issues', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(issueData),
+    });
+    const json = await res.json();
+    await fetchAndNotifyAll();
+    return json;
+  } catch (err: any) {
+    return { success: false, message: '随手拍提交失败: ' + err.message };
+  }
+}
+
+export async function handleCommunityIssue(
+  id: string, 
+  status: 'processing' | 'resolved' | 'rejected', 
+  adminReply: string, 
+  pointsReward: number, 
+  replyImage?: string,
+  handledBy?: string
+): Promise<{ success: boolean; message?: string; issue?: CommunityIssue }> {
+  try {
+    const res = await fetch(`/api/issues/${id}/handle`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status, adminReply, pointsReward, replyImage, handledBy }),
+    });
+    const json = await res.json();
+    await fetchAndNotifyAll();
+    return json;
+  } catch (err: any) {
+    return { success: false, message: '处理工单失败: ' + err.message };
+  }
+}
+
+export async function deleteCommunityIssue(id: string): Promise<{ success: boolean; message?: string }> {
+  try {
+    const res = await fetch(`/api/issues/${id}`, {
+      method: 'DELETE',
+    });
+    const json = await res.json();
+    await fetchAndNotifyAll();
+    return json;
+  } catch (err: any) {
+    return { success: false, message: '删除工单失败: ' + err.message };
+  }
+}
+

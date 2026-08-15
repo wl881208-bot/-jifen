@@ -19,7 +19,7 @@ import {
 
 interface RedemptionVerificationProps {
   redemptions: Redemption[];
-  currentUser: User;
+  currentUser: User | null;
   onVerifyCode: (code: string, verifierName: string) => Promise<{ success: boolean; message: string; redemption?: Redemption }>;
 }
 
@@ -76,7 +76,7 @@ export const RedemptionVerification: React.FC<RedemptionVerificationProps> = ({
     setIsVerifying(true);
     setVerificationResult(null);
 
-    const res = await onVerifyCode(code, currentUser.name);
+    const res = await onVerifyCode(code, currentUser?.name || '社区管理员');
     setIsVerifying(false);
     setVerificationResult(res);
 

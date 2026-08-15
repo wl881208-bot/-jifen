@@ -7,11 +7,13 @@ import {
   PlusCircle, 
   ClipboardCheck, 
   Gift, 
-  QrCode 
+  QrCode,
+  Users,
+  Camera
 } from 'lucide-react';
 
 export type ResidentTab = 'home' | 'activities' | 'mall' | 'profile';
-export type AdminTab = 'activities_admin' | 'audits_admin' | 'gifts_admin' | 'verification_admin';
+export type AdminTab = 'activities_admin' | 'audits_admin' | 'issues_admin' | 'gifts_admin' | 'verification_admin' | 'users_admin';
 
 interface BottomNavProps {
   currentRole: 'resident' | 'admin';
@@ -127,8 +129,10 @@ export const BottomNav: React.FC<BottomNavProps> = ({
       icon: ClipboardCheck, 
       badge: pendingAuditsCount > 0 ? pendingAuditsCount : undefined 
     },
+    { id: 'issues_admin' as AdminTab, label: '随手拍工单治理', icon: Camera },
     { id: 'gifts_admin' as AdminTab, label: '礼品与库存管理', icon: Gift },
     { id: 'verification_admin' as AdminTab, label: '现场领奖核销', icon: QrCode },
+    { id: 'users_admin' as AdminTab, label: '用户与权限设置', icon: Users },
   ];
 
   if (isMobileSimulated) {

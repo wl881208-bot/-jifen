@@ -19,23 +19,25 @@ import { WechatActivityPosterModal } from '../WechatActivityPosterModal';
 import { triggerWechatMockShare } from '../../lib/wechatJssdk';
 
 interface ActivityHallProps {
-  currentUser: User;
+  currentUser: User | null;
   activities: Activity[];
   myRegistrations: Registration[];
   onRegister: (activity: Activity) => Promise<{ success: boolean; message: string }>;
   onSubmitServiceProof: (activityTitle: string, activityId: string, hours: number, pointsReward: number, proofText: string) => Promise<void>;
   selectedActivityForDetail?: Activity | null;
   onClearSelectedActivity?: () => void;
+  onOpenLoginModal?: (prompt?: string) => void;
 }
 
 export const ActivityHall: React.FC<ActivityHallProps> = ({
   currentUser,
-  activities,
-  myRegistrations,
+  activities = [],
+  myRegistrations = [],
   onRegister,
   onSubmitServiceProof,
   selectedActivityForDetail,
   onClearSelectedActivity,
+  onOpenLoginModal,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('全部');
@@ -58,12 +60,25 @@ export const ActivityHall: React.FC<ActivityHallProps> = ({
 
   const categories = ['全部', '环保卫士', '关爱邻里', '平安社区', '便民服务', '文明创建'];
 
-  // Check registration IDs
-  const myRegMap = new Map<string, Registration>();
-  myRegistrations.forEach(r => myRegMap.set(r.activityId, r));
+  // Safe registration map
+  const safeRegistrations = Array.isArray(myRegistrations) ? myRegistrations : [];
+  const safeActivities = Array.isArray(activities) ? activities : [];
 
-  const filteredActivities = activities.filter(act => {
-    const matchesSearch = act.title.includes(searchTerm) || act.description.includes(searchTerm) || act.location.includes(searchTerm);
+  const myRegMap = new Map<string, Registration>();
+  safeRegistrations.forEach(r => {
+    if (r && r.activityId) {
+      myRegMap.set(r.activityId, r);
+    }
+  });
+
+  const term = (searchTerm || '').trim().toLowerCase();
+
+  const filteredActivities = safeActivities.filter(act => {
+    if (!act) return false;
+    const title = (act.title || '').toLowerCase();
+    const desc = (act.description || '').toLowerCase();
+    const loc = (act.location || '').toLowerCase();
+    const matchesSearch = !term || title.includes(term) || desc.includes(term) || loc.includes(term);
     const matchesCategory = categoryFilter === '全部' || act.category === categoryFilter;
     let matchesStatus = true;
     if (statusFilter === 'recruiting') matchesStatus = act.status === 'recruiting';
@@ -72,6 +87,10 @@ export const ActivityHall: React.FC<ActivityHallProps> = ({
   });
 
   const handleConfirmRegister = async (act: Activity) => {
+    if (!currentUser) {
+      onOpenLoginModal?.('请先登录社区账号后再报名参加志愿活动');
+      return;
+    }
     setIsRegistering(true);
     const res = await onRegister(act);
     setIsRegistering(false);

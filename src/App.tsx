@@ -6,7 +6,9 @@ import {
   Registration, 
   ServiceRecord, 
   Redemption, 
-  PointsHistoryItem 
+  PointsHistoryItem,
+  CommunityIssue,
+  IssueStatus
 } from './types';
 import { 
   seedDatabase, 
@@ -17,6 +19,7 @@ import {
   subscribeToServiceRecords, 
   subscribeToRedemptions, 
   subscribeToPointsHistory,
+  subscribeToIssues,
   registerForActivity,
   submitServiceRecord,
   auditServiceRecord,
@@ -27,23 +30,31 @@ import {
   updateGift,
   redeemGift,
   verifyRedemptionCode,
+  createUser,
+  updateUser,
+  deleteUser,
+  setUserRole,
+  adjustUserPoints,
+  submitCommunityIssue,
+  handleCommunityIssue,
+  deleteCommunityIssue,
   wechatLogin,
-  wechatMockLogin
+  getWechatAuthUrl
 } from './lib/dataService';
 import { Navbar } from './components/Navbar';
 import { WechatAuthConsole } from './components/WechatAuthConsole';
+import { MiniProgramConsole } from './components/MiniProgramConsole';
+import { LoginModal } from './components/LoginModal';
+import { CommunitySnapModal } from './components/resident/CommunitySnapModal';
+import { CommunitySnapFeedModal } from './components/resident/CommunitySnapFeedModal';
 import { initWechatJssdk } from './lib/wechatJssdk';
 import { BottomNav, ResidentTab, AdminTab } from './components/BottomNav';
 import { ResidentHome } from './components/resident/ResidentHome';
 import { ActivityHall } from './components/resident/ActivityHall';
 import { PointsMall } from './components/resident/PointsMall';
 import { MyProfile } from './components/resident/MyProfile';
-import { AdminDashboard } from './components/admin/AdminDashboard';
-import { ActivityManage } from './components/admin/ActivityManage';
-import { AuditHours } from './components/admin/AuditHours';
-import { GiftManage } from './components/admin/GiftManage';
-import { RedemptionVerification } from './components/admin/RedemptionVerification';
-import { X, Send, Smartphone, Maximize2, Minimize2, Monitor, Info, Wifi } from 'lucide-react';
+import { AdminPortal } from './components/admin/AdminPortal';
+import { X, Send, Smartphone, Monitor, ShieldCheck, LogIn, Lock, ArrowRight, ExternalLink } from 'lucide-react';
 
 export default function App() {
   // Real-time State
@@ -54,17 +65,36 @@ export default function App() {
   const [serviceRecords, setServiceRecords] = useState<ServiceRecord[]>([]);
   const [redemptions, setRedemptions] = useState<Redemption[]>([]);
   const [pointsHistory, setPointsHistory] = useState<PointsHistoryItem[]>([]);
+  const [issues, setIssues] = useState<CommunityIssue[]>([]);
 
-  // Navigation & Role State
-  const [currentRole, setCurrentRole] = useState<'resident' | 'admin'>('resident');
+  // Portal Mode: 'h5' (Resident client) vs 'admin' (Dedicated Backend Portal)
+  const isInitialAdmin = typeof window !== 'undefined' && (
+    window.location.pathname.startsWith('/admin') ||
+    window.location.hash.startsWith('#admin') ||
+    new URLSearchParams(window.location.search).get('portal') === 'admin'
+  );
+  const [portalMode, setPortalMode] = useState<'h5' | 'admin'>(isInitialAdmin ? 'admin' : 'h5');
+
+  // Navigation Tabs State
   const [residentTab, setResidentTab] = useState<ResidentTab>('home');
   const [adminTab, setAdminTab] = useState<AdminTab>('verification_admin');
 
-  // Mobile Shell Simulation Toggle (Default enabled)
-  const [isMobileSimulated, setIsMobileSimulated] = useState<boolean>(true);
+  // Mobile Shell Simulation Toggle (Default FALSE for standard responsive H5 Web)
+  const [isMobileSimulated, setIsMobileSimulated] = useState<boolean>(false);
 
-  // Active User (Defaults to 张兰英 user_1)
+  // Debug Console Visibility Toggle (Default FALSE for clean Web UI)
+  const [showDebugTools, setShowDebugTools] = useState<boolean>(false);
+
+  // Active User: Defaults to null (Guest / Unlogged in) unless persisted in localStorage
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+
+  // Login Modal State (Resident H5)
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [loginPromptText, setLoginPromptText] = useState<string | undefined>(undefined);
+
+  // Community Snap (随手拍) Modals
+  const [isSnapModalOpen, setIsSnapModalOpen] = useState(false);
+  const [isSnapFeedModalOpen, setIsSnapFeedModalOpen] = useState(false);
 
   // Global UI Modals / Toast
   const [isResetting, setIsResetting] = useState(false);
@@ -74,7 +104,35 @@ export default function App() {
   const [claimHours, setClaimHours] = useState(2.0);
   const [claimProofText, setClaimProofText] = useState('');
   const [isSubmittingClaim, setIsSubmittingClaim] = useState(false);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+
+  // Listen to browser URL changes (popstate / hashchange)
+  useEffect(() => {
+    const handleUrlChange = () => {
+      const isAdminRoute = window.location.pathname.startsWith('/admin') || 
+                           window.location.hash.startsWith('#admin') || 
+                           new URLSearchParams(window.location.search).get('portal') === 'admin';
+      setPortalMode(isAdminRoute ? 'admin' : 'h5');
+    };
+
+    window.addEventListener('popstate', handleUrlChange);
+    window.addEventListener('hashchange', handleUrlChange);
+    return () => {
+      window.removeEventListener('popstate', handleUrlChange);
+      window.removeEventListener('hashchange', handleUrlChange);
+    };
+  }, []);
+
+  // Portal Navigation Helpers
+  const navigateToAdmin = () => {
+    setPortalMode('admin');
+    window.history.pushState({}, '', '/admin');
+  };
+
+  const navigateToH5 = () => {
+    setPortalMode('h5');
+    window.history.pushState({}, '', '/');
+  };
 
   // Initial Seed & Real-time Subscriptions
   useEffect(() => {
@@ -87,9 +145,10 @@ export default function App() {
       // Seed MySQL mock engine with initial dataset if empty
       await seedDatabase(false);
 
-      // Check WeChat OAuth code in URL
+      // Check WeChat OAuth code in URL (if arriving from WeChat OAuth redirect)
       const urlParams = new URLSearchParams(window.location.search);
       const codeFromUrl = urlParams.get('code');
+      const isWeChatBrowser = typeof navigator !== 'undefined' && /MicroMessenger/i.test(navigator.userAgent);
 
       if (codeFromUrl) {
         try {
@@ -97,23 +156,30 @@ export default function App() {
           if (wxRes.success && wxRes.user) {
             setCurrentUser(wxRes.user);
             if (wxRes.openid) localStorage.setItem('wechat_openid', wxRes.openid);
-            showToast(wxRes.message || `微信静默授权登录成功 [${wxRes.user.name}]`);
+            localStorage.setItem('logged_in_user_id', wxRes.user.id);
+            showToast(wxRes.message || `微信授权登录成功 [${wxRes.user.name}]`);
+          } else if (wxRes.message) {
+            showToast(wxRes.message, 'error');
           }
         } catch (e) {
           console.error('WeChat code exchange error:', e);
+          showToast('微信授权换取失败，请重新进入', 'error');
         }
         const cleanUrl = window.location.pathname;
         window.history.replaceState({}, document.title, cleanUrl);
       } else {
+        // Check local storage for persistent login
+        const savedUserId = localStorage.getItem('logged_in_user_id');
         const savedOpenid = localStorage.getItem('wechat_openid');
+
         if (savedOpenid) {
           try {
-            const wxRes = await wechatMockLogin(savedOpenid);
+            const wxRes = await wechatLogin(undefined, savedOpenid);
             if (wxRes.success && wxRes.user) {
               setCurrentUser(wxRes.user);
             }
           } catch (e) {
-            console.warn('Saved openid login error:', e);
+            console.warn('Saved WeChat openid login error:', e);
           }
         }
       }
@@ -121,11 +187,14 @@ export default function App() {
       // Subscribe to real-time database updates
       unsubscribeFns.push(subscribeToUsers((u) => {
         setUsers(u);
-        // Sync active user profile updates
+        // Sync active user profile updates if already logged in
         setCurrentUser((prev) => {
           if (!prev) {
-            const defaultUser = u.find(user => user.id === 'user_1') || u[0];
-            return defaultUser || null;
+            const savedUserId = localStorage.getItem('logged_in_user_id');
+            if (savedUserId) {
+              return u.find(user => user.id === savedUserId) || null;
+            }
+            return null;
           }
           const updated = u.find(user => user.id === prev.id);
           return updated || prev;
@@ -138,6 +207,7 @@ export default function App() {
       unsubscribeFns.push(subscribeToServiceRecords((s) => setServiceRecords(s)));
       unsubscribeFns.push(subscribeToRedemptions((red) => setRedemptions(red)));
       unsubscribeFns.push(subscribeToPointsHistory((pts) => setPointsHistory(pts)));
+      unsubscribeFns.push(subscribeToIssues((iss) => setIssues(iss)));
     };
 
     initData();
@@ -147,9 +217,30 @@ export default function App() {
     };
   }, []);
 
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
+  const showToast = (msg: string, type: 'success' | 'error' | 'info' = 'success') => {
+    setToast({ message: msg, type });
+    setTimeout(() => setToast(null), 3500);
+  };
+
+  // Open Login Modal Helper
+  const handleOpenLogin = (prompt?: string) => {
+    setLoginPromptText(prompt);
+    setIsLoginModalOpen(true);
+  };
+
+  // User Login Success Handler
+  const handleLoginSuccess = (user: User) => {
+    setCurrentUser(user);
+    showToast(`欢迎回来，${user.name}！已同步您的志愿档案。`);
+  };
+
+  // User Logout Handler
+  const handleLogout = () => {
+    localStorage.removeItem('logged_in_user_id');
+    localStorage.removeItem('wechat_openid');
+    setCurrentUser(null);
+    setResidentTab('home');
+    showToast('已安全退出当前账号，进入未登录浏览模式', 'info');
   };
 
   // Reset Mock Data Button
@@ -160,15 +251,20 @@ export default function App() {
     showToast('已重置并装载社区示例测试数据！');
   };
 
-  // Active User Selection
+  // Active User Selection (e.g. from dropdown or switcher)
   const handleUserSelect = (user: User) => {
+    localStorage.setItem('logged_in_user_id', user.id);
+    if (user.openid) localStorage.setItem('wechat_openid', user.openid);
     setCurrentUser(user);
-    showToast(`已切换至体验账号：${user.name}`);
+    showToast(`已切换至账号：${user.name}`);
   };
 
   // Activity Registration Action
   const handleRegisterForActivity = async (activity: Activity) => {
-    if (!currentUser) return { success: false, message: '请先选择体验账号' };
+    if (!currentUser) {
+      handleOpenLogin('请先微信登录后再报名参加志愿活动');
+      return { success: false, message: '请先登录社区账号' };
+    }
     const res = await registerForActivity(currentUser, activity);
     return res;
   };
@@ -181,7 +277,10 @@ export default function App() {
     pointsReward: number,
     proofText: string
   ) => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      handleOpenLogin('请先微信登录后再提交志愿打卡证明');
+      return;
+    }
     await submitServiceRecord({
       userId: currentUser.id,
       userName: currentUser.name,
@@ -197,7 +296,11 @@ export default function App() {
 
   // Global Independent Hour Claim Submission
   const handleGlobalClaimSubmit = async () => {
-    if (!currentUser || !claimTitle.trim() || !claimProofText.trim()) return;
+    if (!currentUser) {
+      handleOpenLogin('请先微信登录后再提交工时申报');
+      return;
+    }
+    if (!claimTitle.trim() || !claimProofText.trim()) return;
     setIsSubmittingClaim(true);
     await submitServiceRecord({
       userId: currentUser.id,
@@ -217,7 +320,10 @@ export default function App() {
 
   // Redeem Gift Action
   const handleRedeemGift = async (gift: Gift) => {
-    if (!currentUser) return { success: false, message: '未登录居民账号' };
+    if (!currentUser) {
+      handleOpenLogin('请先微信登录后再使用积分兑换礼品');
+      return { success: false, message: '未登录居民账号' };
+    }
     const res = await redeemGift(currentUser, gift);
     return res;
   };
@@ -228,40 +334,156 @@ export default function App() {
     return res;
   };
 
-  if (!currentUser) {
+  // Community Issue (随手拍) Actions
+  const handleCreateIssue = async (data: Omit<CommunityIssue, 'id' | 'createdAt' | 'status'>) => {
+    const res = await submitCommunityIssue(data);
+    if (res.success) {
+      showToast('随手拍问题已成功上报！网格员将火速核实整改，办结后奖励 +15 积分');
+    }
+    return res;
+  };
+
+  const handleAdminHandleIssue = async (
+    id: string, 
+    status: IssueStatus, 
+    adminReply: string, 
+    pointsReward: number, 
+    replyImage?: string,
+    handledBy?: string
+  ) => {
+    const res = await handleCommunityIssue(id, status, adminReply, pointsReward, replyImage, handledBy);
+    if (res.success) {
+      showToast(status === 'resolved' ? '工单已办结并已向居民发放积分奖励！' : '工单状态已更新');
+    }
+    return res;
+  };
+
+  const handleAdminDeleteIssue = async (id: string) => {
+    const res = await deleteCommunityIssue(id);
+    if (res.success) {
+      showToast('随手拍记录已删除');
+    }
+    return res;
+  };
+
+  // Render Admin Portal if in admin portal route
+  if (portalMode === 'admin') {
     return (
-      <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4 text-slate-500 text-sm">
-        系统初始化中，请稍候...
-      </div>
+      <>
+        <AdminPortal
+          currentUser={currentUser}
+          users={users}
+          activities={activities}
+          gifts={gifts}
+          registrations={registrations}
+          serviceRecords={serviceRecords}
+          redemptions={redemptions}
+          pointsHistory={pointsHistory}
+          issues={issues}
+          adminTab={adminTab}
+          onAdminTabChange={(tab) => setAdminTab(tab)}
+          onLoginAsAdmin={(adminUser) => {
+            handleUserSelect(adminUser);
+            showToast(`已登录管理员身份：${adminUser.name}`);
+          }}
+          onLogoutAdmin={() => {
+            handleLogout();
+            showToast('已安全退出管理后台');
+          }}
+          onNavigateToH5={navigateToH5}
+          onResetData={handleResetData}
+          isResetting={isResetting}
+          onCreateActivity={createActivity}
+          onUpdateActivity={updateActivity}
+          onDeleteActivity={deleteActivity}
+          onAuditServiceRecord={auditServiceRecord}
+          onCreateGift={createGift}
+          onUpdateGift={updateGift}
+          onVerifyRedemptionCode={handleVerifyRedemptionCode}
+          onCreateUser={createUser}
+          onUpdateUser={updateUser}
+          onDeleteUser={deleteUser}
+          onSetUserRole={setUserRole}
+          onAdjustPoints={adjustUserPoints}
+          onHandleIssue={handleAdminHandleIssue}
+          onDeleteIssue={handleAdminDeleteIssue}
+        />
+
+        {/* Global Toast Notification */}
+        {toast && (
+          <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-200 pointer-events-none max-w-md w-full px-4">
+            <div className={`p-3 rounded-2xl shadow-xl border flex items-center space-x-2.5 text-xs font-semibold backdrop-blur-md ${
+              toast.type === 'error'
+                ? 'bg-red-900/90 text-red-100 border-red-500/40 shadow-red-950/40'
+                : toast.type === 'info'
+                ? 'bg-slate-900/90 text-slate-100 border-slate-700/60 shadow-slate-950/40'
+                : 'bg-emerald-900/90 text-emerald-100 border-emerald-500/40 shadow-emerald-950/40'
+            }`}>
+              <span className="shrink-0">{toast.type === 'error' ? '⚠️' : toast.type === 'info' ? 'ℹ️' : '✅'}</span>
+              <span className="flex-1 leading-snug">{toast.message}</span>
+            </div>
+          </div>
+        )}
+      </>
     );
   }
 
-  const pendingAuditsCount = serviceRecords.filter(r => r.status === 'pending').length;
-
   return (
-    <div className="min-h-screen bg-slate-100/90 text-slate-900 font-sans antialiased selection:bg-red-500 selection:text-white">
+    <div className="min-h-screen bg-slate-100/90 text-slate-900 font-sans antialiased selection:bg-emerald-500 selection:text-white">
       
-      {/* WeChat Silent Auth & OpenID Console Bar */}
-      <WechatAuthConsole
-        currentUser={currentUser}
-        onUserChange={(user) => {
-          setCurrentUser(user);
-          if (user.openid) localStorage.setItem('wechat_openid', user.openid);
-        }}
-        onShowMessage={(msg) => showToast(msg)}
-      />
+      {/* Native WeChat Mini-Program Native Console Bar (Debug Mode Only) */}
+      {showDebugTools && (
+        <div className="relative">
+          <div className="bg-slate-900 text-slate-200 text-xs px-4 py-2 flex items-center justify-between border-b border-slate-800">
+            <div className="flex items-center space-x-2">
+              <span className="bg-amber-500/20 text-amber-300 font-mono px-2 py-0.5 rounded text-[11px] font-bold">
+                开发者调试工具
+              </span>
+              <span className="text-slate-400">独立后台地址: <code className="text-amber-400 font-mono">/admin</code></span>
+            </div>
+            <button
+              onClick={navigateToAdmin}
+              className="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-lg flex items-center space-x-1.5 transition-colors cursor-pointer"
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>进入管理后台门户</span>
+              <ExternalLink className="w-3 h-3" />
+            </button>
+          </div>
+
+          <MiniProgramConsole
+            currentUser={currentUser}
+            onUserChange={(user) => {
+              handleUserSelect(user);
+            }}
+            onShowMessage={(msg, type) => showToast(msg, type)}
+          />
+
+          <WechatAuthConsole
+            currentUser={currentUser}
+            onUserChange={(user) => {
+              handleUserSelect(user);
+            }}
+            onShowMessage={(msg) => showToast(msg)}
+          />
+        </div>
+      )}
 
       {/* Top Navbar */}
       <Navbar
         currentUser={currentUser}
         users={users}
-        currentRole={currentRole}
-        onRoleSwitch={(role) => setCurrentRole(role)}
+        currentRole="resident"
+        onRoleSwitch={() => {}}
         onUserSelect={handleUserSelect}
         onResetData={handleResetData}
         isResetting={isResetting}
+        onOpenLoginModal={handleOpenLogin}
+        onLogout={handleLogout}
         isMobileSimulated={isMobileSimulated}
         onToggleMobileSimulator={() => setIsMobileSimulated(!isMobileSimulated)}
+        showDebugTools={showDebugTools}
+        onToggleDebugTools={() => setShowDebugTools(!showDebugTools)}
       />
 
       {/* Main Core View Area - Normal vs Smartphone Shell */}
@@ -276,7 +498,7 @@ export default function App() {
             <span className="text-slate-600">|</span>
             <button
               onClick={() => setIsMobileSimulated(false)}
-              className="text-amber-400 hover:text-amber-300 font-semibold underline flex items-center space-x-1"
+              className="text-amber-400 hover:text-amber-300 font-semibold underline flex items-center space-x-1 cursor-pointer"
             >
               <Monitor className="w-3.5 h-3.5" />
               <span>还原网页全屏</span>
@@ -286,144 +508,87 @@ export default function App() {
           {/* iPhone Physical Device Outer Shell */}
           <div className="relative w-[390px] max-w-full h-[760px] bg-slate-950 rounded-[48px] p-3 shadow-2xl border-4 border-slate-700 ring-1 ring-white/20 flex flex-col overflow-hidden">
             
-            {/* iOS Status Bar */}
-            <div className="bg-red-600 text-white px-6 pt-2 pb-1 flex items-center justify-between text-[11px] font-semibold shrink-0 select-none">
-              <span>09:41</span>
-              {/* Dynamic Island / Notch */}
-              <div className="w-20 h-4 bg-black rounded-full flex items-center justify-center space-x-1 border border-slate-800">
-                <div className="w-2 h-2 rounded-full bg-blue-900/80"></div>
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-              </div>
-              <div className="flex items-center space-x-1 text-[10px]">
-                <Wifi className="w-3 h-3" />
-                <span>5G</span>
-              </div>
-            </div>
-
-            {/* WeChat H5 Capsule Navigation Header */}
-            <div className="bg-red-600 text-white px-4 py-2 flex items-center justify-between shrink-0 select-none border-b border-red-700">
-              <div className="flex items-center space-x-1.5">
-                <span className="text-[10px] bg-red-700/90 px-2 py-0.5 rounded-full font-mono text-white/90">微信H5</span>
-                <span className="text-xs font-bold truncate max-w-[130px]">幸福社区志愿服务</span>
-              </div>
-              {/* WeChat Capsule Button */}
-              <div className="bg-black/25 backdrop-blur-md rounded-full px-2.5 py-0.5 flex items-center space-x-2 border border-white/20 text-xs">
-                <span className="text-white font-bold tracking-tighter">•••</span>
-                <span className="text-white/30">|</span>
-                <span className="text-white font-bold text-sm">⊙</span>
-              </div>
-            </div>
-
             {/* Phone Screen Inner Container */}
-            <div className="flex-1 overflow-hidden bg-slate-100/95 text-slate-900 relative flex flex-col">
+            <div className="flex-1 overflow-hidden bg-slate-100/95 text-slate-900 relative flex flex-col rounded-[36px]">
               
               {/* Scrollable View Area */}
               <div className="flex-1 overflow-y-auto p-3 pb-20 custom-scrollbar">
                 {/* Global Notification Toast */}
-                {toastMessage && (
-                  <div className="mb-3 bg-slate-900 text-white px-3 py-2 rounded-xl shadow-lg text-xs font-semibold border border-slate-700 flex items-center space-x-1">
-                    <span>✨ {toastMessage}</span>
+                {toast && (
+                  <div className={`mb-3 px-3 py-2 rounded-xl shadow-lg text-xs font-semibold border flex items-center space-x-1.5 ${
+                    toast.type === 'error' ? 'bg-red-950 text-red-100 border-red-700' :
+                    toast.type === 'info' ? 'bg-slate-900 text-slate-100 border-slate-700' :
+                    'bg-emerald-950 text-emerald-100 border-emerald-700'
+                  }`}>
+                    <span>{toast.type === 'error' ? '⚠️' : toast.type === 'info' ? 'ℹ️' : '✨'}</span>
+                    <span>{toast.message}</span>
                   </div>
                 )}
 
                 {/* Resident Mode Views */}
-                {currentRole === 'resident' && (
-                  <>
-                    {residentTab === 'home' && (
-                      <ResidentHome
-                        currentUser={currentUser}
-                        activities={activities}
-                        pointsHistory={pointsHistory}
-                        redemptions={redemptions}
-                        onNavigateTab={(tab) => setResidentTab(tab)}
-                        onOpenActivityDetail={(act) => {
-                          setSelectedActivityForDetail(act);
-                          setResidentTab('activities');
-                        }}
-                        onOpenClaimModal={() => setGlobalClaimModalOpen(true)}
-                      />
-                    )}
-
-                    {residentTab === 'activities' && (
-                      <ActivityHall
-                        currentUser={currentUser}
-                        activities={activities}
-                        myRegistrations={registrations.filter(r => r.userId === currentUser.id)}
-                        onRegister={handleRegisterForActivity}
-                        onSubmitServiceProof={handleSubmitServiceProof}
-                        selectedActivityForDetail={selectedActivityForDetail}
-                        onClearSelectedActivity={() => setSelectedActivityForDetail(null)}
-                      />
-                    )}
-
-                    {residentTab === 'mall' && (
-                      <PointsMall
-                        currentUser={currentUser}
-                        gifts={gifts}
-                        onRedeemGift={handleRedeemGift}
-                        onNavigateToRedemptions={() => setResidentTab('profile')}
-                      />
-                    )}
-
-                    {residentTab === 'profile' && (
-                      <MyProfile
-                        currentUser={currentUser}
-                        registrations={registrations}
-                        serviceRecords={serviceRecords}
-                        redemptions={redemptions}
-                        pointsHistory={pointsHistory}
-                      />
-                    )}
-                  </>
+                {residentTab === 'home' && (
+                  <ResidentHome
+                    currentUser={currentUser}
+                    activities={activities}
+                    pointsHistory={pointsHistory}
+                    redemptions={redemptions}
+                    issues={issues}
+                    onNavigateTab={(tab) => setResidentTab(tab)}
+                    onOpenActivityDetail={(act) => {
+                      setSelectedActivityForDetail(act);
+                      setResidentTab('activities');
+                    }}
+                    onOpenClaimModal={() => setGlobalClaimModalOpen(true)}
+                    onOpenLoginModal={handleOpenLogin}
+                    onOpenSnapModal={() => setIsSnapModalOpen(true)}
+                    onOpenSnapFeedModal={() => setIsSnapFeedModalOpen(true)}
+                  />
                 )}
 
-                {/* Administrator Mode Views */}
-                {currentRole === 'admin' && (
-                  <>
-                    {adminTab === 'activities_admin' && (
-                      <ActivityManage
-                        activities={activities}
-                        registrations={registrations}
-                        onCreateActivity={createActivity}
-                        onUpdateActivity={updateActivity}
-                        onDeleteActivity={deleteActivity}
-                      />
-                    )}
+                {residentTab === 'activities' && (
+                  <ActivityHall
+                    currentUser={currentUser}
+                    activities={activities}
+                    myRegistrations={currentUser ? registrations.filter(r => r.userId === currentUser.id) : []}
+                    onRegister={handleRegisterForActivity}
+                    onSubmitServiceProof={handleSubmitServiceProof}
+                    selectedActivityForDetail={selectedActivityForDetail}
+                    onClearSelectedActivity={() => setSelectedActivityForDetail(null)}
+                    onOpenLoginModal={handleOpenLogin}
+                  />
+                )}
 
-                    {adminTab === 'audits_admin' && (
-                      <AuditHours
-                        serviceRecords={serviceRecords}
-                        onAuditRecord={auditServiceRecord}
-                      />
-                    )}
+                {residentTab === 'mall' && (
+                  <PointsMall
+                    currentUser={currentUser}
+                    gifts={gifts}
+                    onRedeemGift={handleRedeemGift}
+                    onNavigateToRedemptions={() => setResidentTab('profile')}
+                    onOpenLoginModal={handleOpenLogin}
+                  />
+                )}
 
-                    {adminTab === 'gifts_admin' && (
-                      <GiftManage
-                        gifts={gifts}
-                        onCreateGift={createGift}
-                        onUpdateGift={updateGift}
-                      />
-                    )}
-
-                    {adminTab === 'verification_admin' && (
-                      <RedemptionVerification
-                        redemptions={redemptions}
-                        currentUser={currentUser}
-                        onVerifyCode={handleVerifyRedemptionCode}
-                      />
-                    )}
-                  </>
+                {residentTab === 'profile' && (
+                  <MyProfile
+                    currentUser={currentUser}
+                    registrations={registrations}
+                    serviceRecords={serviceRecords}
+                    redemptions={redemptions}
+                    pointsHistory={pointsHistory}
+                    onLogout={handleLogout}
+                    onOpenLoginModal={handleOpenLogin}
+                  />
                 )}
               </div>
 
               {/* Bottom Nav inside Phone Shell */}
               <BottomNav
-                currentRole={currentRole}
+                currentRole="resident"
                 residentTab={residentTab}
                 adminTab={adminTab}
                 onResidentTabChange={(tab) => setResidentTab(tab)}
                 onAdminTabChange={(tab) => setAdminTab(tab)}
-                pendingAuditsCount={pendingAuditsCount}
+                pendingAuditsCount={0}
                 isMobileSimulated={true}
               />
 
@@ -440,116 +605,103 @@ export default function App() {
         <>
           {/* Navigation Subnav / Mobile Bottom Bar */}
           <BottomNav
-            currentRole={currentRole}
+            currentRole="resident"
             residentTab={residentTab}
             adminTab={adminTab}
             onResidentTabChange={(tab) => setResidentTab(tab)}
             onAdminTabChange={(tab) => setAdminTab(tab)}
-            pendingAuditsCount={pendingAuditsCount}
+            pendingAuditsCount={0}
           />
 
           {/* Main Content Area */}
           <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-5">
-            
-            {/* Global Notification Toast */}
-            {toastMessage && (
-              <div className="fixed top-20 right-4 z-50 bg-slate-900 text-white px-4 py-2.5 rounded-2xl shadow-2xl text-xs font-semibold animate-fade-in border border-slate-700 flex items-center space-x-2">
-                <span>✨ {toastMessage}</span>
-              </div>
-            )}
-
             {/* RESIDENT MODE VIEWS */}
-            {currentRole === 'resident' && (
-              <>
-                {residentTab === 'home' && (
-                  <ResidentHome
-                    currentUser={currentUser}
-                    activities={activities}
-                    pointsHistory={pointsHistory}
-                    redemptions={redemptions}
-                    onNavigateTab={(tab) => setResidentTab(tab)}
-                    onOpenActivityDetail={(act) => {
-                      setSelectedActivityForDetail(act);
-                      setResidentTab('activities');
-                    }}
-                    onOpenClaimModal={() => setGlobalClaimModalOpen(true)}
-                  />
-                )}
-
-                {residentTab === 'activities' && (
-                  <ActivityHall
-                    currentUser={currentUser}
-                    activities={activities}
-                    myRegistrations={registrations.filter(r => r.userId === currentUser.id)}
-                    onRegister={handleRegisterForActivity}
-                    onSubmitServiceProof={handleSubmitServiceProof}
-                    selectedActivityForDetail={selectedActivityForDetail}
-                    onClearSelectedActivity={() => setSelectedActivityForDetail(null)}
-                  />
-                )}
-
-                {residentTab === 'mall' && (
-                  <PointsMall
-                    currentUser={currentUser}
-                    gifts={gifts}
-                    onRedeemGift={handleRedeemGift}
-                    onNavigateToRedemptions={() => setResidentTab('profile')}
-                  />
-                )}
-
-                {residentTab === 'profile' && (
-                  <MyProfile
-                    currentUser={currentUser}
-                    registrations={registrations}
-                    serviceRecords={serviceRecords}
-                    redemptions={redemptions}
-                    pointsHistory={pointsHistory}
-                  />
-                )}
-              </>
+            {residentTab === 'home' && (
+              <ResidentHome
+                currentUser={currentUser}
+                activities={activities}
+                pointsHistory={pointsHistory}
+                redemptions={redemptions}
+                issues={issues}
+                onNavigateTab={(tab) => setResidentTab(tab)}
+                onOpenActivityDetail={(act) => {
+                  setSelectedActivityForDetail(act);
+                  setResidentTab('activities');
+                }}
+                onOpenClaimModal={() => setGlobalClaimModalOpen(true)}
+                onOpenLoginModal={handleOpenLogin}
+                onOpenSnapModal={() => setIsSnapModalOpen(true)}
+                onOpenSnapFeedModal={() => setIsSnapFeedModalOpen(true)}
+              />
             )}
 
-            {/* ADMINISTRATOR MODE VIEWS */}
-            {currentRole === 'admin' && (
-              <>
-                {adminTab === 'activities_admin' && (
-                  <ActivityManage
-                    activities={activities}
-                    registrations={registrations}
-                    onCreateActivity={createActivity}
-                    onUpdateActivity={updateActivity}
-                    onDeleteActivity={deleteActivity}
-                  />
-                )}
-
-                {adminTab === 'audits_admin' && (
-                  <AuditHours
-                    serviceRecords={serviceRecords}
-                    onAuditRecord={auditServiceRecord}
-                  />
-                )}
-
-                {adminTab === 'gifts_admin' && (
-                  <GiftManage
-                    gifts={gifts}
-                    onCreateGift={createGift}
-                    onUpdateGift={updateGift}
-                  />
-                )}
-
-                {adminTab === 'verification_admin' && (
-                  <RedemptionVerification
-                    redemptions={redemptions}
-                    currentUser={currentUser}
-                    onVerifyCode={handleVerifyRedemptionCode}
-                  />
-                )}
-              </>
+            {residentTab === 'activities' && (
+              <ActivityHall
+                currentUser={currentUser}
+                activities={activities}
+                myRegistrations={currentUser ? registrations.filter(r => r.userId === currentUser.id) : []}
+                onRegister={handleRegisterForActivity}
+                onSubmitServiceProof={handleSubmitServiceProof}
+                selectedActivityForDetail={selectedActivityForDetail}
+                onClearSelectedActivity={() => setSelectedActivityForDetail(null)}
+                onOpenLoginModal={handleOpenLogin}
+              />
             )}
 
+            {residentTab === 'mall' && (
+              <PointsMall
+                currentUser={currentUser}
+                gifts={gifts}
+                onRedeemGift={handleRedeemGift}
+                onNavigateToRedemptions={() => setResidentTab('profile')}
+                onOpenLoginModal={handleOpenLogin}
+              />
+            )}
+
+            {residentTab === 'profile' && (
+              <MyProfile
+                currentUser={currentUser}
+                registrations={registrations}
+                serviceRecords={serviceRecords}
+                redemptions={redemptions}
+                pointsHistory={pointsHistory}
+                onLogout={handleLogout}
+                onOpenLoginModal={handleOpenLogin}
+              />
+            )}
           </main>
         </>
       )}
+
+      {/* Login Modal */}
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+        onLoginSuccess={handleLoginSuccess}
+        users={users}
+        defaultPrompt={loginPromptText}
+      />
+
+      {/* Community Snap Modal (随手拍上报弹窗) */}
+      <CommunitySnapModal
+        isOpen={isSnapModalOpen}
+        currentUser={currentUser}
+        onClose={() => setIsSnapModalOpen(false)}
+        onSubmit={handleCreateIssue}
+        onOpenLoginModal={handleOpenLogin}
+      />
+
+      {/* Community Snap Feed Modal (随手拍公示动态广场弹窗) */}
+      <CommunitySnapFeedModal
+        isOpen={isSnapFeedModalOpen}
+        currentUser={currentUser}
+        issues={issues}
+        onClose={() => setIsSnapFeedModalOpen(false)}
+        onOpenSnapModal={() => {
+          setIsSnapFeedModalOpen(false);
+          setIsSnapModalOpen(true);
+        }}
+      />
 
       {/* Global Hour Claim / Service Proof Modal */}
       {globalClaimModalOpen && (
@@ -604,19 +756,35 @@ export default function App() {
             <div className="flex items-center space-x-2 pt-2">
               <button
                 onClick={() => setGlobalClaimModalOpen(false)}
-                className="flex-1 py-2.5 border border-slate-200 text-slate-600 rounded-xl font-semibold text-xs"
+                className="flex-1 py-2.5 border border-slate-200 text-slate-600 rounded-xl font-semibold text-xs cursor-pointer"
               >
                 取消
               </button>
               <button
                 onClick={handleGlobalClaimSubmit}
                 disabled={!claimTitle.trim() || !claimProofText.trim() || isSubmittingClaim}
-                className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-1 shadow-md"
+                className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-1 shadow-md cursor-pointer"
               >
                 <Send className="w-3.5 h-3.5" />
                 <span>{isSubmittingClaim ? '提交中...' : '确认提交审核'}</span>
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Global Toast Notification */}
+      {toast && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-200 pointer-events-none max-w-md w-full px-4">
+          <div className={`p-3 rounded-2xl shadow-xl border flex items-center space-x-2.5 text-xs font-semibold backdrop-blur-md ${
+            toast.type === 'error'
+              ? 'bg-red-900/90 text-red-100 border-red-500/40 shadow-red-950/40'
+              : toast.type === 'info'
+              ? 'bg-slate-900/90 text-slate-100 border-slate-700/60 shadow-slate-950/40'
+              : 'bg-emerald-900/90 text-emerald-100 border-emerald-500/40 shadow-emerald-950/40'
+          }`}>
+            <span className="shrink-0">{toast.type === 'error' ? '⚠️' : toast.type === 'info' ? 'ℹ️' : '✅'}</span>
+            <span className="flex-1 leading-snug">{toast.message}</span>
           </div>
         </div>
       )}

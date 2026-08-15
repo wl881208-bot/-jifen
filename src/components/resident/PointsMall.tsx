@@ -12,14 +12,16 @@ import {
   Sparkles, 
   AlertCircle,
   ChevronRight,
-  MapPin
+  MapPin,
+  LogIn
 } from 'lucide-react';
 
 interface PointsMallProps {
-  currentUser: User;
+  currentUser: User | null;
   gifts: Gift[];
   onRedeemGift: (gift: Gift) => Promise<{ success: boolean; message: string; redemption?: Redemption }>;
   onNavigateToRedemptions: () => void;
+  onOpenLoginModal?: (prompt?: string) => void;
 }
 
 export const PointsMall: React.FC<PointsMallProps> = ({
@@ -27,6 +29,7 @@ export const PointsMall: React.FC<PointsMallProps> = ({
   gifts,
   onRedeemGift,
   onNavigateToRedemptions,
+  onOpenLoginModal,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState('全部');
   const [confirmModalGift, setConfirmModalGift] = useState<Gift | null>(null);
@@ -36,13 +39,26 @@ export const PointsMall: React.FC<PointsMallProps> = ({
 
   const categories = ['全部', '生活用品', '粮油副食', '便民卡券', '文体用品'];
 
-  const filteredGifts = gifts.filter(g => {
+  const filteredGifts = (gifts || []).filter(g => {
     const isCategoryMatch = selectedCategory === '全部' || g.category === selectedCategory;
     return isCategoryMatch && g.status === 'on_sale';
   });
 
+  const handleRedeemClick = (gift: Gift) => {
+    if (!currentUser) {
+      onOpenLoginModal?.('请先登录社区账号后再使用积分兑换礼品');
+      return;
+    }
+    if (currentUser.points < gift.pointsCost) {
+      setErrorToast(`您的积分不足（当前 ${currentUser.points} 分，需要 ${gift.pointsCost} 分），快去参加志愿活动赚取积分吧！`);
+      setTimeout(() => setErrorToast(null), 4000);
+      return;
+    }
+    setConfirmModalGift(gift);
+  };
+
   const handleConfirmRedeem = async () => {
-    if (!confirmModalGift) return;
+    if (!confirmModalGift || !currentUser) return;
     setIsRedeeming(true);
     setErrorToast(null);
 
@@ -67,30 +83,49 @@ export const PointsMall: React.FC<PointsMallProps> = ({
     <div className="space-y-5 pb-20 md:pb-10">
       
       {/* Balance Top Card */}
-      <div className="bg-gradient-to-r from-amber-500 via-amber-600 to-red-600 rounded-3xl text-white p-6 shadow-xl relative overflow-hidden">
+      <div className="bg-gradient-to-r from-amber-500 via-amber-600 to-red-600 rounded-3xl text-white p-5 sm:p-6 shadow-xl relative overflow-hidden">
         <div className="absolute right-0 bottom-0 opacity-15 pointer-events-none">
           <GiftIcon className="w-56 h-56 text-white" />
         </div>
 
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
           <div className="space-y-1">
-            <div className="flex items-center space-x-2 text-xs text-amber-100">
+            <div className="flex items-center space-x-2 text-xs text-amber-100 font-medium">
               <ShoppingBag className="w-4 h-4 text-amber-200" />
-              <span>积分商城 · 凭积分免费兑换礼品</span>
+              <span>积分商城 · 凭志愿工时积分免费兑换</span>
             </div>
-            <div className="flex items-baseline space-x-1 pt-1">
-              <span className="text-4xl font-extrabold text-white">{currentUser.points}</span>
-              <span className="text-sm font-medium text-amber-100">可用积分</span>
-            </div>
+            {currentUser ? (
+              <div className="flex items-baseline space-x-1.5 pt-1">
+                <span className="text-3xl sm:text-4xl font-extrabold text-white">{currentUser.points}</span>
+                <span className="text-xs sm:text-sm font-medium text-amber-100">可用积分</span>
+              </div>
+            ) : (
+              <div className="pt-1">
+                <div className="text-base sm:text-lg font-bold text-white">登录后查看我的积分余额</div>
+                <div className="text-xs text-amber-100/90">参与社区服务，即刻兑换心仪礼品</div>
+              </div>
+            )}
           </div>
 
-          <button
-            onClick={onNavigateToRedemptions}
-            className="bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-md text-xs font-semibold px-3.5 py-2 rounded-xl transition-all flex items-center space-x-1 shadow-xs"
-          >
-            <QrCode className="w-4 h-4" />
-            <span>我的兑换卷</span>
-          </button>
+          <div className="flex items-center space-x-2">
+            {currentUser ? (
+              <button
+                onClick={onNavigateToRedemptions}
+                className="bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-md text-xs font-semibold px-3.5 py-2 rounded-xl transition-all flex items-center space-x-1 shadow-xs cursor-pointer"
+              >
+                <QrCode className="w-4 h-4" />
+                <span>我的兑换卷</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => onOpenLoginModal?.('微信授权一键登录后即可兑换礼品')}
+                className="bg-white text-slate-950 text-xs font-bold px-4 py-2.5 rounded-xl transition-all flex items-center space-x-1.5 shadow-md hover:bg-amber-100 cursor-pointer"
+              >
+                <LogIn className="w-4 h-4 text-emerald-600" />
+                <span>微信登录查看积分</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -100,7 +135,7 @@ export const PointsMall: React.FC<PointsMallProps> = ({
           <button
             key={cat}
             onClick={() => setSelectedCategory(cat)}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-medium shrink-0 transition-colors ${
+            className={`px-3.5 py-1.5 rounded-full text-xs font-medium shrink-0 transition-colors cursor-pointer ${
               selectedCategory === cat
                 ? 'bg-amber-500 text-slate-900 font-bold shadow-xs'
                 : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
@@ -113,9 +148,9 @@ export const PointsMall: React.FC<PointsMallProps> = ({
 
       {/* Error toast */}
       {errorToast && (
-        <div className="bg-red-600 text-white p-3 rounded-xl text-xs font-semibold flex items-center justify-between shadow-md">
+        <div className="bg-red-600 text-white p-3 rounded-xl text-xs font-semibold flex items-center justify-between shadow-md animate-fade-in">
           <span>{errorToast}</span>
-          <button onClick={() => setErrorToast(null)} className="p-1 hover:bg-white/20 rounded">
+          <button onClick={() => setErrorToast(null)} className="p-1 hover:bg-white/20 rounded cursor-pointer">
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -130,77 +165,81 @@ export const PointsMall: React.FC<PointsMallProps> = ({
           </div>
         ) : (
           filteredGifts.map((gift) => {
-            const canAfford = currentUser.points >= gift.pointsCost;
-            const hasStock = gift.stock > 0;
-
+            const canAfford = currentUser ? currentUser.points >= gift.pointsCost : true;
             return (
-              <div
+              <div 
                 key={gift.id}
-                className="bg-white rounded-2xl border border-slate-200/90 shadow-xs hover:shadow-md transition-all overflow-hidden flex flex-col justify-between"
+                className="bg-white rounded-2xl border border-slate-200/90 overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col justify-between group"
               >
-                <div>
-                  {/* Gift Image */}
-                  <div className="relative aspect-4/3 overflow-hidden bg-slate-100">
-                    <img
-                      src={gift.image}
-                      alt={gift.name}
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                    />
-                    <span className="absolute top-1.5 left-1.5 bg-slate-900/75 text-white text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded-md backdrop-blur-xs">
-                      {gift.category}
-                    </span>
-                    <span className={`absolute top-1.5 right-1.5 text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
-                      hasStock ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'
-                    }`}>
-                      {hasStock ? `库存 ${gift.stock}` : '已售罄'}
-                    </span>
+                <div className="relative aspect-4/3 bg-slate-100 overflow-hidden">
+                  <img 
+                    src={gift.image} 
+                    alt={gift.name} 
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
+                  />
+                  <div className="absolute top-2 left-2 bg-slate-900/60 backdrop-blur-xs text-white text-[10px] px-2 py-0.5 rounded-full font-medium">
+                    {gift.category}
                   </div>
+                  {gift.stock <= 5 && (
+                    <div className="absolute top-2 right-2 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+                      仅剩 {gift.stock} 件
+                    </div>
+                  )}
+                </div>
 
-                  {/* Gift Info */}
-                  <div className="p-2.5 space-y-1">
-                    <h4 className="font-bold text-slate-800 text-xs truncate">
+                <div className="p-3 sm:p-4 space-y-2 flex-1 flex flex-col justify-between">
+                  <div>
+                    <h4 className="font-bold text-slate-900 text-xs sm:text-sm line-clamp-1 group-hover:text-red-600 transition-colors">
                       {gift.name}
                     </h4>
-                    <p className="text-[10px] sm:text-[11px] text-slate-500 line-clamp-2 leading-tight">
+                    <p className="text-[11px] text-slate-400 line-clamp-1 mt-0.5">
                       {gift.description}
                     </p>
                   </div>
-                </div>
 
-                {/* Bottom Action Row */}
-                <div className="p-2.5 pt-0 space-y-1.5">
-                  <div className="flex items-baseline justify-between">
-                    <span className="text-sm sm:text-base font-extrabold text-red-600">
-                      {gift.pointsCost} <span className="text-[10px] font-semibold">积分</span>
-                    </span>
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                    <div>
+                      <div className="text-sm sm:text-base font-extrabold text-red-600">
+                        {gift.pointsCost} <span className="text-[10px] font-normal text-slate-400">积分</span>
+                      </div>
+                      <div className="text-[10px] text-slate-400">库存: {gift.stock}</div>
+                    </div>
+
+                    <button
+                      onClick={() => handleRedeemClick(gift)}
+                      disabled={gift.stock <= 0}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer ${
+                        gift.stock <= 0
+                          ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                          : currentUser && !canAfford
+                            ? 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+                            : 'bg-red-600 hover:bg-red-700 text-white'
+                      }`}
+                    >
+                      {gift.stock <= 0 
+                        ? '已抢光' 
+                        : !currentUser
+                          ? '兑换'
+                          : !canAfford 
+                            ? '积分不足' 
+                            : '立即兑换'
+                      }
+                    </button>
                   </div>
-
-                  <button
-                    onClick={() => setConfirmModalGift(gift)}
-                    disabled={!canAfford || !hasStock}
-                    className={`w-full py-1.5 rounded-xl text-[11px] font-bold transition-all ${
-                      canAfford && hasStock
-                        ? 'bg-amber-500 hover:bg-amber-600 text-slate-950 shadow-xs'
-                        : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                    }`}
-                  >
-                    {!hasStock ? '无货' : !canAfford ? '积分不足' : '使用积分兑换'}
-                  </button>
                 </div>
-
               </div>
             );
           })
         )}
       </div>
 
-      {/* Redemption Confirm Modal */}
-      {confirmModalGift && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+      {/* CONFIRM REDEMPTION MODAL */}
+      {confirmModalGift && currentUser && (
+        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl animate-scale-up">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-bold text-slate-900 text-base">确认积分兑换礼品</h3>
-              <button onClick={() => setConfirmModalGift(null)} className="p-1 text-slate-400 hover:text-slate-600">
+              <button onClick={() => setConfirmModalGift(null)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -231,20 +270,20 @@ export const PointsMall: React.FC<PointsMallProps> = ({
 
             <div className="text-[11px] text-slate-500 bg-slate-100 p-2.5 rounded-xl space-y-0.5">
               <div className="font-semibold text-slate-700">领奖提示：</div>
-              <div>兑换成功后将生成唯一核销二维码/兑换码，请前往党群中心现场展示核销领奖。</div>
+              <div>兑换成功后将生成唯一核销二维码/兑换码，请前往党群服务中心现场展示核销领奖。</div>
             </div>
 
             <div className="flex items-center space-x-2 pt-1">
               <button
                 onClick={() => setConfirmModalGift(null)}
-                className="flex-1 py-2.5 border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                className="flex-1 py-2.5 border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
               >
                 再想想
               </button>
               <button
                 onClick={handleConfirmRedeem}
                 disabled={isRedeeming}
-                className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs shadow-md transition-all"
+                className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs shadow-md transition-all cursor-pointer"
               >
                 {isRedeeming ? '兑换中...' : '确认兑换'}
               </button>
@@ -299,7 +338,7 @@ export const PointsMall: React.FC<PointsMallProps> = ({
                 setSuccessRedemption(null);
                 onNavigateToRedemptions();
               }}
-              className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs shadow-md"
+              className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs shadow-md cursor-pointer"
             >
               去我的兑换卷查看
             </button>

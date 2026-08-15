@@ -1,4 +1,4 @@
-export type UserRole = 'resident' | 'admin';
+export type UserRole = 'resident' | 'party_member' | 'admin';
 
 export interface User {
   id: string;
@@ -116,3 +116,53 @@ export interface PointsHistoryItem {
   description: string;
   createdAt: string;
 }
+
+export type IssueCategory = '环境卫生' | '设施破损' | '安全隐患' | '车辆违停' | '楼道堆物' | '其它诉求';
+export type IssueStatus = 'pending' | 'processing' | 'resolved' | 'rejected';
+
+export interface CommunityIssue {
+  id: string;
+  userId: string;
+  userName: string;
+  userPhone: string;
+  userAvatar?: string;
+  userRole?: UserRole;
+  title: string;
+  category: IssueCategory;
+  description: string;
+  images: string[];
+  location: string;
+  locationDetail?: string;
+  status: IssueStatus;
+  pointsReward?: number;
+  adminReply?: string;
+  replyImage?: string;
+  handledBy?: string;
+  resolvedAt?: string;
+  createdAt: string;
+}
+
+export interface MiniProgramSessionResponse {
+  success: boolean;
+  message?: string;
+  openid?: string;
+  unionid?: string;
+  session_key?: string;
+  user?: User;
+  token?: string;
+  isNew?: boolean;
+}
+
+export interface MiniProgramPhoneResponse {
+  success: boolean;
+  message?: string;
+  phoneNumber?: string;
+  user?: User;
+}
+
+export interface MiniProgramSourceFile {
+  path: string;
+  content: string;
+  description: string;
+}
+

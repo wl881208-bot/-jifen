@@ -90,25 +90,25 @@ export const WechatAuthConsole: React.FC<WechatAuthConsoleProps> = ({
     <div className="bg-emerald-800 text-white border-b border-emerald-700/60 shadow-inner">
       <div className="max-w-7xl mx-auto px-4 py-2 flex flex-wrap items-center justify-between text-xs gap-2">
         
-        {/* Environment & OpenID Status */}
-        <div className="flex items-center space-x-2 flex-wrap">
-          <span className="bg-emerald-900/80 text-emerald-200 border border-emerald-600/50 px-2 py-0.5 rounded-full font-medium flex items-center space-x-1">
-            <Smartphone className="w-3 h-3 text-emerald-300" />
-            <span>{isWechatBrowser ? '微信 H5 环境 (snsapi_base)' : '微信 H5 Mock 模式已激活'}</span>
-          </span>
+            {/* Environment & OpenID Status */}
+            <div className="flex items-center space-x-2 flex-wrap">
+              <span className="bg-emerald-900/80 text-emerald-200 border border-emerald-600/50 px-2 py-0.5 rounded-full font-medium flex items-center space-x-1">
+                <Smartphone className="w-3 h-3 text-emerald-300" />
+                <span>{isWechatBrowser ? '真实微信 H5 授权模式 (snsapi_userinfo)' : '真实微信登录模式 (Mock已关闭)'}</span>
+              </span>
 
-          <div className="flex items-center space-x-1 bg-black/20 px-2.5 py-0.5 rounded-md border border-emerald-500/30">
-            <Key className="w-3 h-3 text-amber-300" />
-            <span className="text-emerald-100 font-mono">OpenID:</span>
-            <span className="font-semibold text-amber-200 font-mono truncate max-w-[150px] sm:max-w-none">
-              {currentUser.openid || 'mock_openid_resident_001'}
-            </span>
-          </div>
+              <div className="flex items-center space-x-1 bg-black/20 px-2.5 py-0.5 rounded-md border border-emerald-500/30">
+                <Key className="w-3 h-3 text-amber-300" />
+                <span className="text-emerald-100 font-mono">OpenID:</span>
+                <span className="font-semibold text-amber-200 font-mono truncate max-w-[150px] sm:max-w-none">
+                  {currentUser.openid || '真实微信账号认证中'}
+                </span>
+              </div>
 
-          <span className="hidden md:inline-block text-emerald-200/80">
-            绑定账号: <strong className="text-white">{currentUser.name}</strong> ({currentUser.points} 积分)
-          </span>
-        </div>
+              <span className="hidden md:inline-block text-emerald-200/80">
+                当前居民: <strong className="text-white">{currentUser.name}</strong> ({currentUser.points} 积分)
+              </span>
+            </div>
 
         {/* Action Controls */}
         <div className="flex items-center space-x-2">
@@ -230,6 +230,34 @@ export const WechatAuthConsole: React.FC<WechatAuthConsoleProps> = ({
 
             </div>
 
+            {/* WeChat Error 10011 Troubleshooting & Domain Config Help */}
+            <div className="bg-amber-950/70 border border-amber-500/50 p-3 rounded-xl text-amber-100 text-xs space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-1.5 font-bold text-amber-300">
+                  <Info className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>遇到微信“错误码 10011（redirect_uri 域名与后台配置不一致）”？</span>
+                </div>
+                <button
+                  onClick={handleCopyLink}
+                  className="bg-amber-400 text-slate-950 px-2.5 py-1 rounded-md text-[11px] font-bold hover:bg-amber-300 transition-colors flex items-center space-x-1 shrink-0"
+                >
+                  <Copy className="w-3 h-3" />
+                  <span>{copied ? '已复制域名' : '复制授权域名'}</span>
+                </button>
+              </div>
+
+              <div className="text-[11px] text-amber-200/90 leading-relaxed space-y-1">
+                <p><strong>错误原因：</strong>微信公众号 <code className="bg-black/40 px-1 py-0.5 rounded text-amber-300">wx8b069e2f10f2e2da</code> 的后台尚未将本系统域名配置为【网页授权域名】。</p>
+                <p><strong>解决步骤（仅需 1 分钟）：</strong></p>
+                <ol className="list-decimal list-inside space-y-0.5 pl-1 text-amber-100">
+                  <li>登录 <a href="https://mp.weixin.qq.com" target="_blank" rel="noreferrer" className="underline font-semibold text-amber-300">微信公众平台 (mp.weixin.qq.com)</a></li>
+                  <li>进入 <b>【设置与开发】👉【公众号设置】👉【功能设置】👉【网页授权域名】</b></li>
+                  <li>点击设置，在域名栏填入：<code className="bg-black/50 px-1.5 py-0.5 rounded text-amber-300 font-mono">ais-pre-osvnr3skurb2bwxoglvyra-202559658155.us-east1.run.app</code></li>
+                  <li>如微信提示校验 <code className="bg-black/40 px-1 py-0.5 rounded text-amber-300">MP_verify_xxx.txt</code> 文件，本服务端已全自动原生拦截适配，直接点击“确认/保存”即可成功配置！</li>
+                </ol>
+              </div>
+            </div>
+
             {/* Custom OpenID Form & Simulate Redirect Button */}
             <div className="pt-2 border-t border-emerald-800/80 flex flex-wrap items-center gap-2">
               <div className="flex-1 min-w-[200px] flex items-center space-x-2">
@@ -330,6 +358,17 @@ export const WechatAuthConsole: React.FC<WechatAuthConsoleProps> = ({
                   <ExternalLink className="w-3.5 h-3.5" />
                   <span>新标签页打开</span>
                 </a>
+              </div>
+
+              <div className="bg-amber-50 border border-amber-200 p-2.5 rounded-xl text-[11px] text-amber-900 text-left space-y-1">
+                <p className="font-bold text-amber-950 flex items-center space-x-1">
+                  <Info className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                  <span>扫码若提示“错误码 10011”？</span>
+                </p>
+                <p className="text-amber-800 leading-snug">
+                  请在微信公众号后台【网页授权域名】中添加：<br/>
+                  <code className="font-mono bg-white px-1 py-0.5 rounded border border-amber-200 text-amber-950 font-semibold select-all">ais-pre-osvnr3skurb2bwxoglvyra-202559658155.us-east1.run.app</code>
+                </p>
               </div>
             </div>
 

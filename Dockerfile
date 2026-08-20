@@ -3,14 +3,11 @@ FROM node:20-slim AS builder
 
 WORKDIR /app
 
-# 设置 npm 国内镜像源，加速镜像构建
-RUN npm config set registry https://registry.npmmirror.com
-
 # 复制 package.json，避免跨平台 lock 文件冲突
 COPY package*.json ./
 
-# 安装完整依赖
-RUN npm install --include=optional
+# 安装完整依赖（优先官方镜像源保障 Firebase 全套依赖完整性，支持自动重试）
+RUN npm install --legacy-peer-deps --registry=https://registry.npmjs.org || npm install --legacy-peer-deps
 
 COPY . .
 
@@ -30,8 +27,7 @@ COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/dist ./dist
 
 # 只安装生产依赖
-RUN npm config set registry https://registry.npmmirror.com
-RUN npm install --only=production --include=optional
+RUN npm install --omit=dev --legacy-peer-deps --registry=https://registry.npmjs.org || npm install --omit=dev --legacy-peer-deps
 
 EXPOSE 8080 80 3000
 

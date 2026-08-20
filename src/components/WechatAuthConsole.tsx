@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { User, WechatLoginResponse } from '../types';
 import { wechatMockLogin, getWechatAuthUrl } from '../lib/dataService';
 import { QRCodeSVG } from 'qrcode.react';
+import { getPublicAppUrl } from '../lib/appConfig';
 import { 
   QrCode, 
   CheckCircle2, 
@@ -15,7 +16,8 @@ import {
   Key,
   X,
   Copy,
-  ExternalLink
+  ExternalLink,
+  Globe
 } from 'lucide-react';
 
 interface WechatAuthConsoleProps {
@@ -36,7 +38,8 @@ export const WechatAuthConsole: React.FC<WechatAuthConsoleProps> = ({
   const [customName, setCustomName] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const appPreviewUrl = 'https://ais-pre-osvnr3skurb2bwxoglvyra-202559658155.us-east1.run.app';
+  // Public preview link (accessible directly on mobile phones without Google Account login)
+  const appPreviewUrl = getPublicAppUrl();
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(appPreviewUrl);
@@ -65,8 +68,8 @@ export const WechatAuthConsole: React.FC<WechatAuthConsoleProps> = ({
 
   const handleSimulateNewUser = async () => {
     const randId = Math.floor(1000 + Math.random() * 9000);
-    const newOpenId = `mock_openid_wx_${randId}`;
-    await handleSwitchOpenId(newOpenId, `微信居民_${randId}`);
+    const newOpenId = `wx_openid_${Date.now().toString(36)}_${randId}`;
+    await handleSwitchOpenId(newOpenId, `新居民_${randId}`);
   };
 
   const handleSimulateWechatAuthRedirect = async () => {
@@ -75,8 +78,9 @@ export const WechatAuthConsole: React.FC<WechatAuthConsoleProps> = ({
       const authRes = await getWechatAuthUrl(window.location.href);
       if (authRes.authUrl) {
         onShowMessage(`[模拟微信静默跳转] 重定向至: ${authRes.authUrl.slice(0, 45)}...`, 'info');
+        const randId = Math.floor(1000 + Math.random() * 9000);
         setTimeout(() => {
-          handleSwitchOpenId('mock_openid_resident_001');
+          handleSwitchOpenId(`wx_auth_${Date.now().toString(36)}`, `微信居民_${randId}`);
         }, 800);
       }
     } catch (err) {
@@ -230,6 +234,34 @@ export const WechatAuthConsole: React.FC<WechatAuthConsoleProps> = ({
 
             </div>
 
+            {/* Domestic Network & Deployment Architecture Guide */}
+            <div className="bg-emerald-900/60 border border-emerald-600/50 p-3 rounded-xl text-emerald-100 text-xs space-y-2">
+              <div className="flex items-center space-x-1.5 font-bold text-amber-300">
+                <Globe className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>🇨🇳 国内生产环境微信直连与部署方案指南</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
+                <div className="bg-black/30 p-2.5 rounded-lg border border-emerald-700/60 space-y-1">
+                  <div className="font-bold text-amber-200">方案 1：微信云托管 (推荐)</div>
+                  <p className="text-emerald-300/80 leading-relaxed">
+                    腾讯云与微信官方打通，免翻墙、免域名备案，自带微信内网免鉴权及天然 HTTPS，直接通过微信开放接口完成登录。
+                  </p>
+                </div>
+                <div className="bg-black/30 p-2.5 rounded-lg border border-emerald-700/60 space-y-1">
+                  <div className="font-bold text-amber-200">方案 2：国内自建服务器</div>
+                  <p className="text-emerald-300/80 leading-relaxed">
+                    部署在腾讯云/阿里云/华为云，将已备案域名绑定在微信公众号后台【网页授权域名】与【JS安全域名】即可。
+                  </p>
+                </div>
+                <div className="bg-black/30 p-2.5 rounded-lg border border-emerald-700/60 space-y-1">
+                  <div className="font-bold text-amber-200">方案 3：当前演示快速体验</div>
+                  <p className="text-emerald-300/80 leading-relaxed">
+                    在登录弹窗中点击【⚡ 一键模拟手机扫码确认】或使用【📱 手机号快捷登录】，无需翻墙即可秒级体验所有功能。
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {/* WeChat Error 10011 Troubleshooting & Domain Config Help */}
             <div className="bg-amber-950/70 border border-amber-500/50 p-3 rounded-xl text-amber-100 text-xs space-y-2">
               <div className="flex items-center justify-between">
@@ -252,7 +284,7 @@ export const WechatAuthConsole: React.FC<WechatAuthConsoleProps> = ({
                 <ol className="list-decimal list-inside space-y-0.5 pl-1 text-amber-100">
                   <li>登录 <a href="https://mp.weixin.qq.com" target="_blank" rel="noreferrer" className="underline font-semibold text-amber-300">微信公众平台 (mp.weixin.qq.com)</a></li>
                   <li>进入 <b>【设置与开发】👉【公众号设置】👉【功能设置】👉【网页授权域名】</b></li>
-                  <li>点击设置，在域名栏填入：<code className="bg-black/50 px-1.5 py-0.5 rounded text-amber-300 font-mono">ais-pre-osvnr3skurb2bwxoglvyra-202559658155.us-east1.run.app</code></li>
+                  <li>点击设置，在域名栏填入：<code className="bg-black/50 px-1.5 py-0.5 rounded text-amber-300 font-mono">jifen-295865-11-1301488547.sh.run.tcloudbase.com</code></li>
                   <li>如微信提示校验 <code className="bg-black/40 px-1 py-0.5 rounded text-amber-300">MP_verify_xxx.txt</code> 文件，本服务端已全自动原生拦截适配，直接点击“确认/保存”即可成功配置！</li>
                 </ol>
               </div>
@@ -367,7 +399,7 @@ export const WechatAuthConsole: React.FC<WechatAuthConsoleProps> = ({
                 </p>
                 <p className="text-amber-800 leading-snug">
                   请在微信公众号后台【网页授权域名】中添加：<br/>
-                  <code className="font-mono bg-white px-1 py-0.5 rounded border border-amber-200 text-amber-950 font-semibold select-all">ais-pre-osvnr3skurb2bwxoglvyra-202559658155.us-east1.run.app</code>
+                  <code className="font-mono bg-white px-1 py-0.5 rounded border border-amber-200 text-amber-950 font-semibold select-all">jifen-295865-11-1301488547.sh.run.tcloudbase.com</code>
                 </p>
               </div>
             </div>

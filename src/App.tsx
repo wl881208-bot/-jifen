@@ -39,12 +39,14 @@ import {
   handleCommunityIssue,
   deleteCommunityIssue,
   wechatLogin,
+  wechatDirectAuth,
   getWechatAuthUrl
 } from './lib/dataService';
 import { Navbar } from './components/Navbar';
 import { WechatAuthConsole } from './components/WechatAuthConsole';
 import { MiniProgramConsole } from './components/MiniProgramConsole';
 import { LoginModal } from './components/LoginModal';
+import { ScanAuthModal } from './components/ScanAuthModal';
 import { CommunitySnapModal } from './components/resident/CommunitySnapModal';
 import { CommunitySnapFeedModal } from './components/resident/CommunitySnapFeedModal';
 import { initWechatJssdk } from './lib/wechatJssdk';
@@ -95,6 +97,9 @@ export default function App() {
   // Community Snap (随手拍) Modals
   const [isSnapModalOpen, setIsSnapModalOpen] = useState(false);
   const [isSnapFeedModalOpen, setIsSnapFeedModalOpen] = useState(false);
+
+  // Mobile Scan Ticket Modal (when scanned via phone)
+  const [mobileScanTicket, setMobileScanTicket] = useState<string | null>(null);
 
   // Global UI Modals / Toast
   const [isResetting, setIsResetting] = useState(false);
@@ -148,7 +153,14 @@ export default function App() {
       // Check WeChat OAuth code in URL (if arriving from WeChat OAuth redirect)
       const urlParams = new URLSearchParams(window.location.search);
       const codeFromUrl = urlParams.get('code');
+      const scanTicketFromUrl = urlParams.get('scan_ticket');
       const isWeChatBrowser = typeof navigator !== 'undefined' && /MicroMessenger/i.test(navigator.userAgent);
+
+      if (scanTicketFromUrl) {
+        setMobileScanTicket(scanTicketFromUrl);
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+      }
 
       if (codeFromUrl) {
         try {
@@ -226,6 +238,25 @@ export default function App() {
   const handleOpenLogin = (prompt?: string) => {
     setLoginPromptText(prompt);
     setIsLoginModalOpen(true);
+  };
+
+  // Direct 1-Click WeChat Authorization Handler (No QR modal required)
+  const handleWechatDirectLogin = async (customName?: string) => {
+    try {
+      showToast('正在调起微信登录授权...', 'info');
+      const res = await wechatDirectAuth(customName);
+      if (res.success && res.user) {
+        setCurrentUser(res.user);
+        localStorage.setItem('logged_in_user_id', res.user.id);
+        if (res.user.openid) localStorage.setItem('wechat_openid', res.user.openid);
+        showToast(res.message || `微信授权登录成功！欢迎，【${res.user.name}】`, 'success');
+        setIsLoginModalOpen(false);
+      } else if (res.message) {
+        showToast(res.message, res.success ? 'success' : 'error');
+      }
+    } catch (err: any) {
+      showToast('微信授权登录异常: ' + err.message, 'error');
+    }
   };
 
   // User Login Success Handler
@@ -479,6 +510,7 @@ export default function App() {
         onResetData={handleResetData}
         isResetting={isResetting}
         onOpenLoginModal={handleOpenLogin}
+        onWechatDirectLogin={handleWechatDirectLogin}
         onLogout={handleLogout}
         isMobileSimulated={isMobileSimulated}
         onToggleMobileSimulator={() => setIsMobileSimulated(!isMobileSimulated)}
@@ -540,6 +572,7 @@ export default function App() {
                     }}
                     onOpenClaimModal={() => setGlobalClaimModalOpen(true)}
                     onOpenLoginModal={handleOpenLogin}
+                    onWechatDirectLogin={handleWechatDirectLogin}
                     onOpenSnapModal={() => setIsSnapModalOpen(true)}
                     onOpenSnapFeedModal={() => setIsSnapFeedModalOpen(true)}
                   />
@@ -577,6 +610,7 @@ export default function App() {
                     pointsHistory={pointsHistory}
                     onLogout={handleLogout}
                     onOpenLoginModal={handleOpenLogin}
+                    onWechatDirectLogin={handleWechatDirectLogin}
                   />
                 )}
               </div>
@@ -630,6 +664,7 @@ export default function App() {
                 }}
                 onOpenClaimModal={() => setGlobalClaimModalOpen(true)}
                 onOpenLoginModal={handleOpenLogin}
+                onWechatDirectLogin={handleWechatDirectLogin}
                 onOpenSnapModal={() => setIsSnapModalOpen(true)}
                 onOpenSnapFeedModal={() => setIsSnapFeedModalOpen(true)}
               />
@@ -667,6 +702,7 @@ export default function App() {
                 pointsHistory={pointsHistory}
                 onLogout={handleLogout}
                 onOpenLoginModal={handleOpenLogin}
+                onWechatDirectLogin={handleWechatDirectLogin}
               />
             )}
           </main>
@@ -681,6 +717,19 @@ export default function App() {
         users={users}
         defaultPrompt={loginPromptText}
       />
+
+      {/* Mobile Scan Confirmation Modal */}
+      {mobileScanTicket && (
+        <ScanAuthModal
+          ticket={mobileScanTicket}
+          currentUser={currentUser}
+          onClose={() => setMobileScanTicket(null)}
+          onAuthSuccess={(user) => {
+            setCurrentUser(user);
+          }}
+          onShowMessage={(msg, type) => showToast(msg, type)}
+        />
+      )}
 
       {/* Community Snap Modal (随手拍上报弹窗) */}
       <CommunitySnapModal

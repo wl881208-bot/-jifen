@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, IssueCategory, CommunityIssue } from '../../types';
 import { 
   Camera, 
@@ -11,7 +11,10 @@ import {
   Trash2, 
   Image as ImageIcon,
   Navigation,
-  Send
+  Send,
+  Compass,
+  RefreshCw,
+  Check
 } from 'lucide-react';
 
 interface CommunitySnapModalProps {
@@ -82,12 +85,128 @@ export const CommunitySnapModal: React.FC<CommunitySnapModalProps> = ({
   const [category, setCategory] = useState<IssueCategory>('环境卫生');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [location, setLocation] = useState('幸福小区1期中心广场');
+  const [location, setLocation] = useState('幸福小区中心广场');
   const [locationDetail, setLocationDetail] = useState('');
   const [images, setImages] = useState<string[]>([]);
   const [isLocating, setIsLocating] = useState(false);
+  const [geoCoords, setGeoCoords] = useState<{ lat: number; lng: number; accuracy?: number } | null>(null);
+  const [geoStatus, setGeoStatus] = useState<'idle' | 'locating' | 'success' | 'fallback' | 'denied'>('idle');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Reverse geocode latitude & longitude into real Chinese address
+  const fetchAddressFromCoords = async (latitude: number, longitude: number, accuracy?: number) => {
+    setGeoCoords({ lat: latitude, lng: longitude, accuracy });
+    try {
+      // 1. Try BigDataCloud reverse geocode client (supports Chinese & fast)
+      const bdcUrl = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=zh`;
+      const response = await fetch(bdcUrl, { signal: AbortSignal.timeout(4000) });
+      if (response.ok) {
+        const data = await response.json();
+        const city = data.city || data.principalSubdivision || '';
+        const locality = data.locality || data.district || '';
+        const road = data.street || data.neighbourhood || '';
+        
+        let addressTitle = '';
+        if (city || locality) {
+          addressTitle = `${city}${locality ? ' ' + locality : ''}${road ? ' ' + road : ''}`;
+        }
+        
+        if (addressTitle.trim()) {
+          setLocation(addressTitle.trim());
+          const coordText = `GPS实测: ${latitude >= 0 ? '北纬' : '南纬'}${Math.abs(latitude).toFixed(5)}° ${longitude >= 0 ? '东经' : '西经'}${Math.abs(longitude).toFixed(5)}° (精度约${accuracy ? Math.round(accuracy) : 10}米)`;
+          setLocationDetail(coordText);
+          setGeoStatus('success');
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('BigDataCloud reverse geocode error or timeout, trying Nominatim fallback...', e);
+    }
+
+    try {
+      // 2. Try OpenStreetMap Nominatim reverse geocode
+      const osmUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=zh-CN,zh;q=0.9`;
+      const osmRes = await fetch(osmUrl, {
+        headers: { 'Accept-Language': 'zh-CN,zh;q=0.9' },
+        signal: AbortSignal.timeout(4000)
+      });
+      if (osmRes.ok) {
+        const osmData = await osmRes.json();
+        const display = osmData.display_name || osmData.name;
+        if (display) {
+          // Format shorter address name for readable title
+          const addr = osmData.address || {};
+          const shortName = [addr.city || addr.town || addr.county, addr.suburb || addr.neighbourhood, addr.road || addr.building].filter(Boolean).join(' ') || display.slice(0, 30);
+          setLocation(shortName);
+          setLocationDetail(`GPS坐标: ${latitude.toFixed(5)}°N, ${longitude.toFixed(5)}°E (${display.slice(0, 40)})`);
+          setGeoStatus('success');
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('Nominatim reverse geocode fallback error:', e);
+    }
+
+    // 3. Fallback: formatted coordinate text
+    const coordStr = `真实位置 (${latitude.toFixed(4)}°N, ${longitude.toFixed(4)}°E)`;
+    setLocation(coordStr);
+    setLocationDetail(`GPS高精度测绘点: 经度 ${longitude.toFixed(6)}°, 纬度 ${latitude.toFixed(6)}°`);
+    setGeoStatus('success');
+  };
+
+  // Real Geolocation Fetcher
+  const handleRealLocationFetch = () => {
+    setIsLocating(true);
+    setGeoStatus('locating');
+
+    if (!navigator.geolocation) {
+      // Geolocation not supported by browser
+      setGeoStatus('fallback');
+      setIsLocating(false);
+      setLocation('幸福小区1期中心广场');
+      setLocationDetail('注: 浏览器未开启硬件GPS支持，使用当前默认社区基站');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude, accuracy } = position.coords;
+        await fetchAddressFromCoords(latitude, longitude, accuracy);
+        setIsLocating(false);
+      },
+      (error) => {
+        console.warn('Geolocation error:', error);
+        setIsLocating(false);
+        if (error.code === error.PERMISSION_DENIED) {
+          setGeoStatus('denied');
+          // Still provide friendly message & community preset
+          if (!location || location === '幸福小区中心广场') {
+            setLocation('幸福小区1期中心广场');
+            setLocationDetail('未授权浏览器GPS权限，您可以手动修改或点选下方快捷位置');
+          }
+        } else {
+          setGeoStatus('fallback');
+          if (!location) {
+            setLocation('幸福社区中心网格区');
+            setLocationDetail('GPS信号获取超时，已自动匹配社区默认网格点');
+          }
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    );
+  };
+
+  // Automatically fetch real location when modal is opened
+  useEffect(() => {
+    if (isOpen) {
+      handleRealLocationFetch();
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -118,17 +237,6 @@ export const CommunitySnapModal: React.FC<CommunitySnapModalProps> = ({
     setCategory(preset.category);
     if (!title) setTitle(preset.presetTitle);
     if (!description) setDescription(preset.presetDesc);
-  };
-
-  // Simulate smart GPS locating
-  const handleAutoLocate = () => {
-    setIsLocating(true);
-    setTimeout(() => {
-      const randomLoc = PRESET_LOCATIONS[Math.floor(Math.random() * PRESET_LOCATIONS.length)];
-      setLocation(randomLoc);
-      setLocationDetail('GPS精确坐标: 东经121°28′ 北纬31°14′ (幸福网格03号)');
-      setIsLocating(false);
-    }, 500);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -356,8 +464,8 @@ export const CommunitySnapModal: React.FC<CommunitySnapModalProps> = ({
             </div>
           </div>
 
-          {/* 4. Location Selection */}
-          <div className="space-y-2">
+          {/* 4. Location Selection with Real GPS Geolocation & Reverse Geocoding */}
+          <div className="space-y-2.5">
             <div className="flex items-center justify-between">
               <label className="block text-xs font-bold text-slate-700 flex items-center space-x-1">
                 <MapPin className="w-3.5 h-3.5 text-red-600" />
@@ -365,49 +473,92 @@ export const CommunitySnapModal: React.FC<CommunitySnapModalProps> = ({
               </label>
               <button
                 type="button"
-                onClick={handleAutoLocate}
+                onClick={handleRealLocationFetch}
                 disabled={isLocating}
-                className="text-[11px] text-red-600 hover:text-red-700 font-semibold flex items-center space-x-1 cursor-pointer"
+                className="text-[11px] text-red-600 hover:text-red-700 font-bold flex items-center space-x-1 cursor-pointer bg-red-50 hover:bg-red-100 px-2.5 py-1 rounded-lg border border-red-200 transition-colors"
               >
-                <Navigation className={`w-3 h-3 ${isLocating ? 'animate-spin' : ''}`} />
-                <span>{isLocating ? '定位中...' : '📍 重新智能定位'}</span>
+                <RefreshCw className={`w-3 h-3 ${isLocating ? 'animate-spin' : ''}`} />
+                <span>{isLocating ? '正在获取真实GPS...' : '📍 重新获取真实定位'}</span>
               </button>
             </div>
 
-            {/* Quick Location Chips */}
-            <div className="flex flex-wrap gap-1.5">
-              {PRESET_LOCATIONS.map((loc) => (
-                <button
-                  type="button"
-                  key={loc}
-                  onClick={() => setLocation(loc)}
-                  className={`text-[11px] px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
-                    location === loc
-                      ? 'bg-red-100/70 border-red-400 text-red-800 font-bold'
-                      : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-600'
-                  }`}
-                >
-                  {loc}
-                </button>
-              ))}
-            </div>
+            {/* GPS Status Indicator Bar */}
+            {geoStatus === 'success' && geoCoords && (
+              <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-start space-x-2 text-emerald-800 text-xs">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <div className="space-y-0.5 flex-1">
+                  <div className="font-bold flex items-center justify-between">
+                    <span>📡 已成功获取您的真实物理定位</span>
+                    <span className="text-[10px] bg-emerald-200/80 text-emerald-900 px-1.5 py-0.2 rounded font-mono">
+                      精度约 {geoCoords.accuracy ? Math.round(geoCoords.accuracy) : 10}m
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-emerald-700 font-mono">
+                    经度: {geoCoords.lng.toFixed(5)}° | 纬度: {geoCoords.lat.toFixed(5)}°
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {geoStatus === 'denied' && (
+              <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl flex items-start space-x-2 text-amber-900 text-xs">
+                <Compass className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <span className="font-bold">浏览器定位权限未开启</span>
+                  <p className="text-[11px] text-amber-800">
+                    您可在浏览器地址栏允许“位置信息”权限后点击上方“重新获取真实定位”，或直接在下方手动输入详细地点。
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Custom Location Input */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-              <input
-                type="text"
-                value={location}
-                onChange={e => setLocation(e.target.value)}
-                placeholder="所在区域/楼栋 (如：幸福小区3号楼)"
-                className="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-red-500 focus:bg-white"
-              />
-              <input
-                type="text"
-                value={locationDetail}
-                onChange={e => setLocationDetail(e.target.value)}
-                placeholder="具体门牌/单元/方位 (选填，如：东单元20米处)"
-                className="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-red-500 focus:bg-white"
-              />
+            <div className="space-y-2">
+              <div>
+                <label className="text-[11px] text-slate-500 font-semibold mb-1 block">真实地点 / 社区区域：</label>
+                <input
+                  type="text"
+                  value={location}
+                  onChange={e => setLocation(e.target.value)}
+                  placeholder="真实地址或所在小区楼栋 (如：某某路幸福小区东门)"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-red-500 focus:bg-white"
+                />
+              </div>
+              
+              <div>
+                <label className="text-[11px] text-slate-500 font-semibold mb-1 block">门牌楼层 / GPS经纬度详情：</label>
+                <input
+                  type="text"
+                  value={locationDetail}
+                  onChange={e => setLocationDetail(e.target.value)}
+                  placeholder="具体单元门牌、方位或GPS坐标详情 (选填)"
+                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-red-500 focus:bg-white"
+                />
+              </div>
+            </div>
+
+            {/* Quick Location Chips */}
+            <div className="pt-1">
+              <span className="text-[11px] text-slate-400 block mb-1.5">或快速切换常用社区位置：</span>
+              <div className="flex flex-wrap gap-1.5">
+                {PRESET_LOCATIONS.map((loc) => (
+                  <button
+                    type="button"
+                    key={loc}
+                    onClick={() => {
+                      setLocation(loc);
+                      setLocationDetail(loc + ' (居民手动指定)');
+                    }}
+                    className={`text-[11px] px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
+                      location === loc
+                        ? 'bg-red-100/70 border-red-400 text-red-800 font-bold'
+                        : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-600'
+                    }`}
+                  >
+                    {loc}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -446,3 +597,4 @@ export const CommunitySnapModal: React.FC<CommunitySnapModalProps> = ({
     </div>
   );
 };
+

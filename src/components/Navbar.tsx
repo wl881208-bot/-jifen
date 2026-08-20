@@ -19,6 +19,8 @@ import {
   User as UserIcon
 } from 'lucide-react';
 
+import { getPublicAppUrl } from '../lib/appConfig';
+
 interface NavbarProps {
   currentUser: User | null;
   users: User[];
@@ -28,6 +30,7 @@ interface NavbarProps {
   onResetData: () => void;
   isResetting: boolean;
   onOpenLoginModal?: (prompt?: string) => void;
+  onWechatDirectLogin?: () => void;
   onLogout?: () => void;
   isMobileSimulated?: boolean;
   onToggleMobileSimulator?: () => void;
@@ -44,6 +47,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onResetData,
   isResetting,
   onOpenLoginModal,
+  onWechatDirectLogin,
   onLogout,
   isMobileSimulated = false,
   onToggleMobileSimulator,
@@ -54,8 +58,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [showQrModal, setShowQrModal] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  // Preferred public preview link
-  const appPreviewUrl = 'https://ais-pre-osvnr3skurb2bwxoglvyra-202559658155.us-east1.run.app';
+  // Public preview link (accessible without Google Account login)
+  const appPreviewUrl = getPublicAppUrl();
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(appPreviewUrl);
@@ -191,11 +195,18 @@ export const Navbar: React.FC<NavbarProps> = ({
             ) : (
               /* When not logged in: Show Login Button */
               <button
-                onClick={() => onOpenLoginModal?.('微信一键授权即可同步个人志愿工时与爱心积分')}
+                onClick={() => {
+                  if (onWechatDirectLogin) {
+                    onWechatDirectLogin();
+                  } else {
+                    onOpenLoginModal?.('微信一键授权即可同步个人志愿工时与爱心积分');
+                  }
+                }}
                 className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-2.5 sm:px-3 py-1.5 rounded-lg font-bold text-xs flex items-center space-x-1 shadow-sm transition-all active:scale-95 cursor-pointer shrink-0"
+                title="点击直接调起微信一键授权登录"
               >
                 <LogIn className="w-3.5 h-3.5 text-slate-950" />
-                <span className="hidden xs:inline">微信登录</span>
+                <span className="hidden xs:inline">微信一键登录</span>
                 <span className="xs:hidden">登录</span>
               </button>
             )}

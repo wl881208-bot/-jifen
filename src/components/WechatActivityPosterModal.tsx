@@ -16,6 +16,7 @@ import {
   QrCode
 } from 'lucide-react';
 import { triggerWechatMockShare } from '../lib/wechatJssdk';
+import { getPublicAppUrl } from '../lib/appConfig';
 
 interface WechatActivityPosterModalProps {
   activity: Activity;
@@ -36,7 +37,7 @@ export const WechatActivityPosterModal: React.FC<WechatActivityPosterModalProps>
 
   // Participant index mock (e.g., 18th volunteer for this activity)
   const participantNumber = (activity.signedCount || 0) + 1;
-  const shareLink = `${window.location.origin}?actId=${activity.id}&referrer=${currentUser.openid || currentUser.id}`;
+  const shareLink = `${getPublicAppUrl()}?actId=${activity.id}&referrer=${currentUser.openid || currentUser.id}`;
 
   useEffect(() => {
     generatePosterCanvas();

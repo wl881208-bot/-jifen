@@ -27,6 +27,7 @@ interface MyProfileProps {
   pointsHistory: PointsHistoryItem[];
   onLogout?: () => void;
   onOpenLoginModal?: (prompt?: string) => void;
+  onWechatDirectLogin?: () => void;
 }
 
 export const MyProfile: React.FC<MyProfileProps> = ({
@@ -37,6 +38,7 @@ export const MyProfile: React.FC<MyProfileProps> = ({
   pointsHistory,
   onLogout,
   onOpenLoginModal,
+  onWechatDirectLogin,
 }) => {
   const [activeTab, setActiveTab] = useState<'redemptions' | 'registrations' | 'records' | 'history'>('redemptions');
   const [viewQrRedemption, setViewQrRedemption] = useState<Redemption | null>(null);
@@ -59,10 +61,17 @@ export const MyProfile: React.FC<MyProfileProps> = ({
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2 max-w-sm mx-auto">
             <button
-              onClick={() => onOpenLoginModal?.('微信一键授权即可查看您的工时与兑换记录')}
+              onClick={() => {
+                if (onWechatDirectLogin) {
+                  onWechatDirectLogin();
+                } else {
+                  onOpenLoginModal?.('微信一键授权即可查看您的工时与兑换记录');
+                }
+              }}
               className="w-full py-3.5 px-5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl text-xs sm:text-sm transition-all shadow-md shadow-emerald-600/20 flex items-center justify-center space-x-2 cursor-pointer active:scale-98"
+              title="点击直接调起微信登录机制"
             >
-              <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
                 <path d="M8.5 2C4.36 2 1 4.91 1 8.5c0 1.98 1.02 3.75 2.64 4.96-.13.78-.58 2.21-.66 2.52-.1.39.14.39.3.28.22-.15 2.29-1.56 2.76-1.89.78.23 1.6.36 2.46.36.21 0 .42-.01.63-.03-.23-.62-.36-1.28-.36-1.97 0-3.31 3.13-6 7-6 .12 0 .24.01.36.01C15.02 3.86 12.01 2 8.5 2zm-2.25 4.5c.69 0 1.25.56 1.25 1.25s-.56 1.25-1.25 1.25S5 8.44 5 7.75 5.56 6.5 6.25 6.5zm4.5 0c.69 0 1.25.56 1.25 1.25s-.56 1.25-1.25 1.25S9.5 8.44 9.5 7.75 10.06 6.5 10.75 6.5zM15.5 8c-3.59 0-6.5 2.46-6.5 5.5 0 1.74.96 3.29 2.45 4.31-.11.66-.49 1.88-.56 2.14-.08.33.12.33.25.24.19-.13 1.94-1.32 2.34-1.6.66.19 1.36.3 2.08.3 3.59 0 6.5-2.46 6.5-5.5S19.09 8 15.5 8zm-2 3.5c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm4 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1z"/>
               </svg>
               <span>微信一键授权登录</span>
@@ -124,7 +133,7 @@ export const MyProfile: React.FC<MyProfileProps> = ({
               </p>
               <div className="flex items-center space-x-1 text-[10px] sm:text-xs text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100 w-fit max-w-full">
                 <span className="font-semibold shrink-0">微信 OpenID:</span>
-                <span className="font-mono text-[10px] sm:text-[11px] font-bold text-emerald-800 truncate">{currentUser.openid || 'wx_openid_resident_001'}</span>
+                <span className="font-mono text-[10px] sm:text-[11px] font-bold text-emerald-800 truncate">{currentUser.openid || `wx_${currentUser.id}`}</span>
               </div>
             </div>
           </div>

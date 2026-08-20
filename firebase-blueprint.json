@@ -122,6 +122,30 @@
         "createdAt": { "type": "string" }
       },
       "required": ["userId", "type", "amount", "title"]
+    },
+    "issues": {
+      "title": "Community Issues",
+      "description": "Community snap-and-report issues submitted by residents",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userPhone": { "type": "string" },
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "description": { "type": "string" },
+        "images": { "type": "array", "items": { "type": "string" } },
+        "location": { "type": "string" },
+        "locationDetail": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "processing", "resolved", "rejected"] },
+        "pointsReward": { "type": "number" },
+        "adminReply": { "type": "string" },
+        "replyImage": { "type": "string" },
+        "handledBy": { "type": "string" },
+        "resolvedAt": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["userId", "title", "category", "description", "location", "status"]
     }
   }
 }

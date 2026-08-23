@@ -279,7 +279,7 @@ export const WechatAuthConsole: React.FC<WechatAuthConsoleProps> = ({
               </div>
 
               <div className="text-[11px] text-amber-200/90 leading-relaxed space-y-1">
-                <p><strong>错误原因：</strong>微信公众号 <code className="bg-black/40 px-1 py-0.5 rounded text-amber-300">wx8b069e2f10f2e2da</code> 的后台尚未将本系统域名配置为【网页授权域名】。</p>
+                <p><strong>错误原因：</strong>微信公众号 <code className="bg-black/40 px-1 py-0.5 rounded text-amber-300">wx7fd578a4010d96c7</code> 的后台尚未将本系统域名配置为【网页授权域名】。</p>
                 <p><strong>解决步骤（仅需 1 分钟）：</strong></p>
                 <ol className="list-decimal list-inside space-y-0.5 pl-1 text-amber-100">
                   <li>登录 <a href="https://mp.weixin.qq.com" target="_blank" rel="noreferrer" className="underline font-semibold text-amber-300">微信公众平台 (mp.weixin.qq.com)</a></li>

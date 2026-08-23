@@ -1145,7 +1145,7 @@ async function startServer() {
       redirectUri = `${defaultAuthOrigin}/`;
     }
 
-    const appid = process.env.WECHAT_APPID || 'wx8b069e2f10f2e2da';
+    const appid = process.env.WECHAT_APPID || 'wx7fd578a4010d96c7';
     const enableMock = process.env.ENABLE_WECHAT_MOCK === 'true';
 
     if (enableMock) {
@@ -1333,7 +1333,7 @@ async function startServer() {
     try {
       const { js_code, code } = req.body;
       const targetCode = js_code || code;
-      const appid = process.env.WECHAT_APPID || 'wx8b069e2f10f2e2da';
+      const appid = process.env.WECHAT_APPID || 'wx7fd578a4010d96c7';
       const secret = process.env.WECHAT_APPSECRET || '21e32182e543571dda65c67e30d4f57c';
       const enableMock = process.env.ENABLE_WECHAT_MOCK === 'true';
 
@@ -1415,7 +1415,7 @@ async function startServer() {
 
   // Exportable Uniapp / Taro / Native Mini-Program Source Code Generator Endpoint
   app.get('/api/wechat/miniprogram/export-source', (req, res) => {
-    const appid = process.env.WECHAT_APPID || 'wx8b069e2f10f2e2da';
+    const appid = process.env.WECHAT_APPID || 'wx7fd578a4010d96c7';
     const baseUrl = process.env.APP_URL || 'https://jifen-295865-11-1301488547.sh.run.tcloudbase.com';
 
     const sourceFiles = [

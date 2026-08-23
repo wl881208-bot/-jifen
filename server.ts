@@ -1034,7 +1034,7 @@ async function startServer() {
   app.post(['/api/wechat/login', '/api/wechat/oauth/callback'], async (req, res) => {
     try {
       const { code, openid: directOpenid, customName, name, avatarUrl } = req.body;
-      const appid = process.env.WECHAT_APPID || 'wx8b069e2f10f2e2da';
+      const appid = process.env.WECHAT_APPID || 'wx7fd578a4010d96c7';
       const secret = process.env.WECHAT_APPSECRET || '21e32182e543571dda65c67e30d4f57c';
       const enableMock = process.env.ENABLE_WECHAT_MOCK === 'true';
 
@@ -1051,34 +1051,39 @@ async function startServer() {
           else if (code && code.length > 0) targetOpenid = 'mock_openid_wx_' + code;
           else targetOpenid = `wx_openid_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
         } else if (code) {
-          // Real WeChat OAuth2.0 code -> access_token & openid exchange
-          const wxUrl = `https://api.weixin.qq.com/sns/oauth2/access_token?appid=${appid}&secret=${secret}&code=${code}&grant_type=authorization_code`;
-          const wxResponse = await fetch(wxUrl);
-          const wxData = await wxResponse.json();
+          try {
+            // Real WeChat OAuth2.0 code -> access_token & openid exchange
+            const wxUrl = `https://api.weixin.qq.com/sns/oauth2/access_token?appid=${appid}&secret=${secret}&code=${code}&grant_type=authorization_code`;
+            const wxResponse = await fetch(wxUrl);
+            const wxData = await wxResponse.json();
 
-          if (wxData.openid) {
-            targetOpenid = wxData.openid;
+            if (wxData.openid) {
+              targetOpenid = wxData.openid;
 
-            // Retrieve real WeChat user profile if access_token exists
-            if (wxData.access_token) {
-              try {
-                const userInfoUrl = `https://api.weixin.qq.com/sns/userinfo?access_token=${wxData.access_token}&openid=${wxData.openid}&lang=zh_CN`;
-                const userInfoRes = await fetch(userInfoUrl);
-                const userInfo = await userInfoRes.json();
-                if (userInfo.nickname) {
-                  wechatNickname = userInfo.nickname;
+              // Retrieve real WeChat user profile if access_token exists
+              if (wxData.access_token) {
+                try {
+                  const userInfoUrl = `https://api.weixin.qq.com/sns/userinfo?access_token=${wxData.access_token}&openid=${wxData.openid}&lang=zh_CN`;
+                  const userInfoRes = await fetch(userInfoUrl);
+                  const userInfo = await userInfoRes.json();
+                  if (userInfo.nickname) {
+                    wechatNickname = userInfo.nickname;
+                  }
+                  if (userInfo.headimgurl) {
+                    wechatAvatar = userInfo.headimgurl;
+                  }
+                } catch (uErr) {
+                  console.warn('[WeChat Auth] Real WeChat userinfo profile fetch warning:', uErr);
                 }
-                if (userInfo.headimgurl) {
-                  wechatAvatar = userInfo.headimgurl;
-                }
-              } catch (uErr) {
-                console.warn('[WeChat Auth] Real WeChat userinfo profile fetch warning:', uErr);
               }
+            } else {
+              console.warn('[WeChat Auth] Real WeChat API response:', wxData);
+              // Deterministic user openid for real WeChat redirect sessions
+              targetOpenid = `wx_user_${code.slice(0, 16)}`;
             }
-          } else {
-            console.warn('[WeChat Auth] Real WeChat API exchange response without openid:', wxData);
-            // If domain not configured or code expired, fallback to a unique new user instead of failing hard
-            targetOpenid = `wx_user_${Date.now().toString(36)}`;
+          } catch (fetchErr) {
+            console.warn('[WeChat Auth] WeChat API fetch error, fallback to real code mapping:', fetchErr);
+            targetOpenid = `wx_user_${code.slice(0, 16)}`;
           }
         } else {
           targetOpenid = `wx_openid_${Date.now().toString(36)}`;

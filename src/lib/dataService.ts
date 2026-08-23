@@ -1396,9 +1396,19 @@ export async function mockConfirmScanLogin(ticket: string, customName?: string):
   }
 }
 
-export async function wechatLogin(code: string, mockUserData?: { name?: string; avatar?: string } | string): Promise<WechatLoginResponse> {
+export async function wechatLogin(code?: string, openidOrData?: { name?: string; avatar?: string; openid?: string } | string): Promise<WechatLoginResponse> {
   try {
-    const payload = typeof mockUserData === 'string' ? { name: mockUserData } : mockUserData;
+    let payload: any = {};
+    if (typeof openidOrData === 'string') {
+      if (openidOrData.startsWith('wx_') || openidOrData.startsWith('mock_')) {
+        payload.openid = openidOrData;
+      } else {
+        payload.name = openidOrData;
+      }
+    } else if (openidOrData) {
+      payload = openidOrData;
+    }
+
     const res = await fetch('/api/wechat/oauth/callback', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1406,7 +1416,11 @@ export async function wechatLogin(code: string, mockUserData?: { name?: string; 
     });
     const data = await res.json();
     if (data.user) {
-      await setDoc(doc(db, 'users', data.user.id), data.user, { merge: true });
+      try {
+        await setDoc(doc(db, 'users', data.user.id), data.user, { merge: true });
+      } catch (fsErr) {
+        console.warn('Sync user to firestore warning:', fsErr);
+      }
     }
     return data;
   } catch (err: any) {

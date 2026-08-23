@@ -1,7 +1,6 @@
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
-import { createServer as createViteServer } from 'vite';
 
 // Types matching frontend
 export interface User {
@@ -3230,11 +3229,16 @@ Page({
 
   // Vite middleware for development vs static serve for production
   if (process.env.NODE_ENV === 'development') {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
+    try {
+      const { createServer: createViteServer } = await import('vite');
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: 'spa',
+      });
+      app.use(vite.middlewares);
+    } catch (e) {
+      console.warn('Vite development server module not found or failed to load:', e);
+    }
   } else {
     let distPath = path.resolve(__dirname);
     if (!fs.existsSync(path.join(distPath, 'index.html'))) {

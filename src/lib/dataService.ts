@@ -1067,7 +1067,7 @@ export async function wechatDirectAuth(customName?: string): Promise<WechatLogin
     // 1. Check if in WeChat in-app browser (微信内置浏览器)
     const isWechat = typeof navigator !== 'undefined' && /MicroMessenger/i.test(navigator.userAgent);
     if (isWechat) {
-      const cleanUri = getPublicAppUrl(window.location.pathname);
+      const cleanUri = 'https://jifen-295865-11-1301488547.sh.run.tcloudbase.com/';
       const authUrlRes = await fetch(`/api/wechat/auth-url?redirect_uri=${encodeURIComponent(cleanUri)}`);
       const data = await authUrlRes.json();
       if (data.success && data.authUrl) {

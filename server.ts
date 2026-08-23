@@ -1127,13 +1127,23 @@ async function startServer() {
   });
 
   app.get(['/api/wechat/auth-url', '/api/wechat/oauth/url'], (req, res) => {
-    let rawUri = (req.query.redirect_uri as string) || (req.query.redirectUri as string) || process.env.APP_URL || 'https://jifen-295865-11-1301488547.sh.run.tcloudbase.com';
-    // If arriving with internal dev domain, convert to public preview domain
-    if (rawUri.includes('ais-dev-')) {
-      rawUri = rawUri.replace('ais-dev-', 'ais-pre-');
-    }
+    // WeChat authorized domain strictly configured in WeChat Official Account backend
+    const defaultAuthOrigin = 'https://jifen-295865-11-1301488547.sh.run.tcloudbase.com';
+    let rawUri = (req.query.redirect_uri as string) || (req.query.redirectUri as string) || process.env.APP_URL || defaultAuthOrigin;
+    
     // Clean redirectUri: strip query strings and hash parameters to comply with WeChat redirect_uri format
     let redirectUri = rawUri.split('?')[0].split('#')[0];
+    
+    // Ensure the redirectUri matches the official domain configured in WeChat mp backend
+    try {
+      const parsed = new URL(redirectUri.startsWith('http') ? redirectUri : `${defaultAuthOrigin}${redirectUri.startsWith('/') ? '' : '/'}${redirectUri}`);
+      // If hostname doesn't match the configured official domain, force using the official domain
+      if (parsed.hostname.includes('tcloudbase.com') || parsed.hostname.includes('run.app') || parsed.hostname === 'localhost') {
+        redirectUri = `${defaultAuthOrigin}${parsed.pathname === '/' ? '/' : parsed.pathname}`;
+      }
+    } catch {
+      redirectUri = `${defaultAuthOrigin}/`;
+    }
 
     const appid = process.env.WECHAT_APPID || 'wx8b069e2f10f2e2da';
     const enableMock = process.env.ENABLE_WECHAT_MOCK === 'true';

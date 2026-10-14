@@ -1,0 +1,448 @@
+{
+  "users": [
+    {
+      "id": "user_wx_1791969467742",
+      "name": "微信居民_5300",
+      "phone": "138****5300",
+      "avatar": "👤",
+      "role": "resident",
+      "points": 0,
+      "totalHours": 0,
+      "badge": "微信社区新人",
+      "joinedDate": "2026-10-14",
+      "openid": "oTest_wx_openid_123456"
+    },
+    {
+      "id": "user_wx_1791968990719",
+      "name": "微信居民_8263",
+      "phone": "138****8263",
+      "avatar": "👤",
+      "role": "resident",
+      "points": 0,
+      "totalHours": 0,
+      "badge": "微信社区新人",
+      "joinedDate": "2026-10-14",
+      "openid": "wx_openid_mv7w2i89_5430"
+    },
+    {
+      "id": "user_wx_1791968966477",
+      "name": "微信居民_4540",
+      "phone": "138****4540",
+      "avatar": "👤",
+      "role": "resident",
+      "points": 0,
+      "totalHours": 0,
+      "badge": "微信社区新人",
+      "joinedDate": "2026-10-14",
+      "openid": "wx_openid_mt1b94dx_4909"
+    },
+    {
+      "id": "user_1",
+      "name": "张兰英",
+      "phone": "138****5678",
+      "avatar": "👵",
+      "role": "resident",
+      "points": 320,
+      "totalHours": 28.5,
+      "badge": "社区志愿榜样",
+      "joinedDate": "2025-03-12",
+      "openid": "mock_openid_resident_001"
+    },
+    {
+      "id": "user_2",
+      "name": "李建国 (党员)",
+      "phone": "139****1234",
+      "avatar": "👨‍💼",
+      "role": "party_member",
+      "points": 180,
+      "totalHours": 18.5,
+      "badge": "党员先锋志愿者",
+      "joinedDate": "2025-06-08",
+      "openid": "mock_openid_resident_002"
+    },
+    {
+      "id": "user_3",
+      "name": "赵红旗 (党员先锋)",
+      "phone": "137****6789",
+      "avatar": "🌟",
+      "role": "party_member",
+      "points": 260,
+      "totalHours": 24,
+      "badge": "在职党员先锋队",
+      "joinedDate": "2025-05-04",
+      "openid": "mock_openid_party_003"
+    },
+    {
+      "id": "user_admin",
+      "name": "王主任 (管理员)",
+      "phone": "133****9999",
+      "avatar": "👮‍♂️",
+      "role": "admin",
+      "points": 999,
+      "totalHours": 100,
+      "badge": "社区党群管理者",
+      "joinedDate": "2024-01-01",
+      "openid": "mock_openid_admin_999"
+    }
+  ],
+  "activities": [
+    {
+      "id": "act_1",
+      "title": "文明创建：社区垃圾分类宣传与分类督导",
+      "location": "幸福小区1-3期垃圾分类投放点",
+      "date": "2026-08-08 08:30 - 10:30",
+      "hours": 2,
+      "pointsReward": 40,
+      "maxSeats": 20,
+      "signedCount": 16,
+      "status": "recruiting",
+      "category": "环保卫士",
+      "description": "在社区定时投放点引导居民正确分类投递垃圾，发放垃圾分类宣传手册，维持投放点干净整洁。",
+      "organizer": "幸福社区党群服务中心",
+      "createdAt": "2026-08-01"
+    },
+    {
+      "id": "act_2",
+      "title": "温暖关爱：独居高龄老人关怀与卫生清扫",
+      "location": "幸福社区高龄老人家中",
+      "date": "2026-08-10 14:00 - 17:00",
+      "hours": 3,
+      "pointsReward": 60,
+      "maxSeats": 10,
+      "signedCount": 8,
+      "status": "recruiting",
+      "category": "关爱邻里",
+      "description": "深入社区独居老人家中，陪老人聊天谈心，帮忙清扫室内卫生、排查燃气水电安全隐患。",
+      "organizer": "社区志愿者协会",
+      "createdAt": "2026-08-02"
+    },
+    {
+      "id": "act_3",
+      "title": "平安社区：楼道电动车违规停放与消防巡查",
+      "location": "幸福社区各居民楼单元楼道",
+      "date": "2026-08-06 19:00 - 21:30",
+      "hours": 2.5,
+      "pointsReward": 50,
+      "maxSeats": 15,
+      "signedCount": 15,
+      "status": "in_progress",
+      "category": "平安社区",
+      "description": "联合社区物业网格员巡查楼道违规飞线充电及违规停放电动车行为，引导居民安全用电停车。",
+      "organizer": "社区网格治理办",
+      "createdAt": "2026-08-03"
+    },
+    {
+      "id": "act_4",
+      "title": "便民义集：社区便民免费理发与磨刀义诊",
+      "location": "社区广场休闲凉亭",
+      "date": "2026-08-02 09:00 - 12:00",
+      "hours": 3,
+      "pointsReward": 60,
+      "maxSeats": 12,
+      "signedCount": 12,
+      "status": "completed",
+      "category": "便民服务",
+      "description": "为辖区60岁以上老人提供免费理发、义诊量血压血糖服务，现场秩序维护与签到引导。",
+      "organizer": "幸福社区新时代文明实践站",
+      "createdAt": "2026-07-28"
+    },
+    {
+      "id": "act_5",
+      "title": "书香社区：社区儿童阅览室图书整理归类",
+      "location": "党群中心2楼书香图书室",
+      "date": "2026-08-12 15:00 - 17:00",
+      "hours": 2,
+      "pointsReward": 40,
+      "maxSeats": 8,
+      "signedCount": 5,
+      "status": "recruiting",
+      "category": "文明创建",
+      "description": "协助整理归位儿童绘本与科普图书，修补破损书籍，保持阅览室书架美观有序。",
+      "organizer": "社区青年先锋队",
+      "createdAt": "2026-08-04"
+    },
+    {
+      "id": "act_6",
+      "title": "绿色家园：微花园花草修剪与浇灌护绿",
+      "location": "幸福社区中央景观公园",
+      "date": "2026-08-15 08:00 - 09:30",
+      "hours": 1.5,
+      "pointsReward": 30,
+      "maxSeats": 10,
+      "signedCount": 6,
+      "status": "recruiting",
+      "category": "环保卫士",
+      "description": "对社区微花园绿植进行杂草清理、松土浇水，修剪残枝败叶，共筑绿色优美环境。",
+      "organizer": "社区绿色环保社团",
+      "createdAt": "2026-08-04"
+    }
+  ],
+  "gifts": [
+    {
+      "id": "gift_1",
+      "name": "304不锈钢便携保温杯 (500ml)",
+      "pointsCost": 150,
+      "stock": 18,
+      "category": "生活用品",
+      "image": "https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&q=80&w=400",
+      "description": "食品级304不锈钢内胆，24小时长效保温，精美刻字，方便携行。",
+      "status": "on_sale",
+      "createdAt": "2026-08-01"
+    },
+    {
+      "id": "gift_2",
+      "name": "5kg优质东北大米兑换券",
+      "pointsCost": 200,
+      "stock": 10,
+      "category": "粮油副食",
+      "image": "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&q=80&w=400",
+      "description": "凭借核销二维码至社区合作超市可直接领取1袋5kg优质东北五常大米。",
+      "status": "on_sale",
+      "createdAt": "2026-08-01"
+    },
+    {
+      "id": "gift_3",
+      "name": "多功能洗洁精与洗手液清洁套装",
+      "pointsCost": 80,
+      "stock": 35,
+      "category": "生活用品",
+      "image": "https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&q=80&w=400",
+      "description": "包含柑橘温和去油洗洁精1.2L + 抑菌洗手液500ml，居家清洁必备。",
+      "status": "on_sale",
+      "createdAt": "2026-08-02"
+    },
+    {
+      "id": "gift_4",
+      "name": "纯棉加厚运动吸汗毛巾 (2条装)",
+      "pointsCost": 60,
+      "stock": 40,
+      "category": "生活用品",
+      "image": "https://images.unsplash.com/photo-1616627547584-bf28cee262db?auto=format&fit=crop&q=80&w=400",
+      "description": "100%新疆长绒棉，吸水性强不掉毛，柔软舒适，志愿服务随身好物。",
+      "status": "on_sale",
+      "createdAt": "2026-08-02"
+    },
+    {
+      "id": "gift_5",
+      "name": "社区环保折叠帆布购物袋",
+      "pointsCost": 30,
+      "stock": 80,
+      "category": "生活用品",
+      "image": "https://images.unsplash.com/photo-1597484661643-2f5fef640dd1?auto=format&fit=crop&q=80&w=400",
+      "description": "防撕裂大容量，便携折叠口袋，倡导绿色减塑生活。",
+      "status": "on_sale",
+      "createdAt": "2026-08-02"
+    },
+    {
+      "id": "gift_6",
+      "name": "自动全晴雨两用黑胶遮阳伞",
+      "pointsCost": 100,
+      "stock": 12,
+      "category": "便民卡券",
+      "image": "https://images.unsplash.com/photo-1534308983496-4fabb1a015ee?auto=format&fit=crop&q=80&w=400",
+      "description": "一键自动开合，UPF50+防晒黑胶涂层，抗风伞骨，出行守护。",
+      "status": "on_sale",
+      "createdAt": "2026-08-03"
+    }
+  ],
+  "registrations": [
+    {
+      "id": "reg_1",
+      "activityId": "act_1",
+      "userId": "user_1",
+      "userName": "张兰英",
+      "userPhone": "138****5678",
+      "activityTitle": "文明创建：社区垃圾分类宣传与分类督导",
+      "status": "registered",
+      "hours": 2,
+      "pointsReward": 40,
+      "signedAt": "2026-08-02 10:15"
+    },
+    {
+      "id": "reg_2",
+      "activityId": "act_4",
+      "userId": "user_1",
+      "userName": "张兰英",
+      "userPhone": "138****5678",
+      "activityTitle": "便民义集：社区便民免费理发与磨刀义诊",
+      "status": "completed",
+      "hours": 3,
+      "pointsReward": 60,
+      "signedAt": "2026-07-29 14:20"
+    },
+    {
+      "id": "reg_3",
+      "activityId": "act_3",
+      "userId": "user_2",
+      "userName": "李建国",
+      "userPhone": "139****1234",
+      "activityTitle": "平安社区：楼道电动车违规停放与消防巡查",
+      "status": "registered",
+      "hours": 2.5,
+      "pointsReward": 50,
+      "signedAt": "2026-08-04 09:30"
+    }
+  ],
+  "serviceRecords": [
+    {
+      "id": "rec_1",
+      "userId": "user_2",
+      "userName": "李建国",
+      "userPhone": "139****1234",
+      "activityId": "act_3",
+      "activityTitle": "平安社区：楼道电动车违规停放与消防巡查",
+      "hours": 2.5,
+      "pointsEarned": 50,
+      "proofText": "参与了幸福社区B区3号楼至6号楼的夜间安全巡查，劝导移走违规充电电动车4台，清理占用楼道消防栓通道杂物。",
+      "status": "pending",
+      "createdAt": "2026-08-05 10:00"
+    },
+    {
+      "id": "rec_2",
+      "userId": "user_1",
+      "userName": "张兰英",
+      "userPhone": "138****5678",
+      "activityId": "act_4",
+      "activityTitle": "便民义集：社区便民免费理发与磨刀义诊",
+      "hours": 3,
+      "pointsEarned": 60,
+      "proofText": "负责便民集市现场老年人签到与茶水供应，协助理发师维护现场排队秩序，服务居民超50人次。",
+      "status": "approved",
+      "createdAt": "2026-08-02 12:30",
+      "reviewedAt": "2026-08-02 15:00"
+    }
+  ],
+  "redemptions": [
+    {
+      "id": "red_1",
+      "code": "VOL-8821-K9P",
+      "userId": "user_1",
+      "userName": "张兰英",
+      "userPhone": "138****5678",
+      "giftId": "gift_1",
+      "giftName": "304不锈钢便携保温杯 (500ml)",
+      "giftImage": "https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&q=80&w=400",
+      "pointsCost": 150,
+      "status": "pending",
+      "createdAt": "2026-08-04 16:20"
+    },
+    {
+      "id": "red_2",
+      "code": "VOL-6632-M2A",
+      "userId": "user_2",
+      "userName": "李建国",
+      "userPhone": "139****1234",
+      "giftId": "gift_5",
+      "giftName": "社区环保折叠帆布购物袋",
+      "giftImage": "https://images.unsplash.com/photo-1597484661643-2f5fef640dd1?auto=format&fit=crop&q=80&w=400",
+      "pointsCost": 30,
+      "status": "redeemed",
+      "createdAt": "2026-08-01 11:10",
+      "redeemedAt": "2026-08-01 14:30",
+      "verifierName": "王主任"
+    }
+  ],
+  "pointsHistory": [
+    {
+      "id": "pts_1",
+      "userId": "user_1",
+      "type": "spend",
+      "amount": 150,
+      "title": "兑换礼品：304不锈钢便携保温杯",
+      "description": "生成兑换码 [VOL-8821-K9P]，等待现场核销领奖",
+      "createdAt": "2026-08-04 16:20"
+    },
+    {
+      "id": "pts_2",
+      "userId": "user_1",
+      "type": "earn",
+      "amount": 60,
+      "title": "服务工时发积分：便民义集理发服务",
+      "description": "管理员审核通过工时 3.0 小时，发放积分奖励",
+      "createdAt": "2026-08-02 15:00"
+    },
+    {
+      "id": "pts_3",
+      "userId": "user_1",
+      "type": "earn",
+      "amount": 100,
+      "title": "新志愿者入会奖励",
+      "description": "首次完成志愿注册并完成实名认证发放初始积分",
+      "createdAt": "2025-03-12 09:00"
+    },
+    {
+      "id": "pts_4",
+      "userId": "user_2",
+      "type": "spend",
+      "amount": 30,
+      "title": "兑换礼品：社区环保折叠帆布购物袋",
+      "description": "现场成功核销核验 [VOL-6632-M2A]",
+      "createdAt": "2026-08-01 11:10"
+    }
+  ],
+  "issues": [
+    {
+      "id": "issue_1",
+      "userId": "user_1",
+      "userName": "张兰英",
+      "userPhone": "138****5678",
+      "userAvatar": "👵",
+      "userRole": "resident",
+      "title": "幸福小区2号楼东侧垃圾投放点垃圾箱满溢散落",
+      "category": "环境卫生",
+      "description": "早上发现2号楼东侧的分类垃圾桶盖损坏且厨余垃圾溢出至地面，异味较重，影响居民早起出行，建议及时安排清运并更换新箱盖。",
+      "images": [
+        "https://images.unsplash.com/photo-1605600659873-d808a13e4d2a?auto=format&fit=crop&q=80&w=600"
+      ],
+      "location": "幸福小区2号楼东侧垃圾分类亭",
+      "locationDetail": "2号楼1单元东侧20米处",
+      "status": "resolved",
+      "pointsReward": 15,
+      "adminReply": "已指派保洁清运班组于当日上午9:30完成清运消毒，并更换了全新脚踏式垃圾桶盖。感谢张阿姨的细心反馈！",
+      "replyImage": "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&q=80&w=600",
+      "handledBy": "王主任 (管理员)",
+      "resolvedAt": "2026-08-04 10:15",
+      "createdAt": "2026-08-04 08:20"
+    },
+    {
+      "id": "issue_2",
+      "userId": "user_2",
+      "userName": "李建国 (党员)",
+      "userPhone": "139****1234",
+      "userAvatar": "👨‍💼",
+      "userRole": "party_member",
+      "title": "3号楼地下车库通道顶灯接触不良闪烁",
+      "category": "设施破损",
+      "description": "地下车库下坡转弯处照明灯管损坏，夜间行车视线较暗，存在安全隐患，请物业电工排查修缮。",
+      "images": [
+        "https://images.unsplash.com/photo-1517420704952-d9f39e95b43e?auto=format&fit=crop&q=80&w=600"
+      ],
+      "location": "幸福小区地下车库入口及主通道",
+      "locationDetail": "地下车库B区负一层拐角处",
+      "status": "processing",
+      "pointsReward": 15,
+      "adminReply": "网格员已现场核实，工程部师傅已领用备用LED节能灯管，预计今日下午完成更换安装。",
+      "handledBy": "王主任 (管理员)",
+      "createdAt": "2026-08-05 19:40"
+    },
+    {
+      "id": "issue_3",
+      "userId": "user_3",
+      "userName": "赵红旗 (党员先锋)",
+      "userPhone": "137****6789",
+      "userAvatar": "🌟",
+      "userRole": "party_member",
+      "title": "中心景观凉亭旁木质长椅螺丝松动翘起",
+      "category": "安全隐患",
+      "description": "中央小广场休闲长椅有一根木条螺丝脱落翘起，老人和小孩坐下容易划伤衣物或皮肤，建议加固。",
+      "images": [
+        "https://images.unsplash.com/photo-1588880331179-bc9b93a8cb5e?auto=format&fit=crop&q=80&w=600"
+      ],
+      "location": "幸福社区中央景观公园",
+      "locationDetail": "紫藤长廊南侧第2把木椅",
+      "status": "pending",
+      "pointsReward": 15,
+      "createdAt": "2026-08-06 09:15"
+    }
+  ]
+}

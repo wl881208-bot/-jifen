@@ -558,8 +558,55 @@ class MockMySQLDatabase {
   private pointsHistory: PointsHistoryItem[] = [];
   private issues: CommunityIssue[] = [];
 
+  private dbFilePath = process.env.DATA_DIR 
+    ? path.join(process.env.DATA_DIR, 'mock_db.json') 
+    : path.join(process.cwd(), 'data', 'mock_db.json');
+
   constructor() {
-    this.seed(true);
+    const loaded = this.loadFromFile();
+    if (!loaded) {
+      this.seed(true);
+    }
+  }
+
+  public saveToFile() {
+    try {
+      const dir = path.dirname(this.dbFilePath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      // Atomic write to prevent partial file corruption on process termination
+      const tmpFilePath = `${this.dbFilePath}.${Date.now()}.${Math.random().toString(36).slice(2, 6)}.tmp`;
+      fs.writeFileSync(tmpFilePath, JSON.stringify(this.getAllData(), null, 2), 'utf8');
+      fs.renameSync(tmpFilePath, this.dbFilePath);
+    } catch (e) {
+      console.warn('DB saveToFile error:', e);
+    }
+  }
+
+  public loadFromFile(): boolean {
+    try {
+      if (fs.existsSync(this.dbFilePath)) {
+        const content = fs.readFileSync(this.dbFilePath, 'utf8');
+        if (!content || !content.trim()) return false;
+        const data = JSON.parse(content);
+        if (data && Array.isArray(data.users) && data.users.length > 0) {
+          this.users = data.users;
+          this.activities = data.activities || [];
+          this.gifts = data.gifts || [];
+          this.registrations = data.registrations || [];
+          this.serviceRecords = data.serviceRecords || [];
+          this.redemptions = data.redemptions || [];
+          this.pointsHistory = data.pointsHistory || [];
+          this.issues = data.issues || [];
+          console.log('[MySQL Engine] Database loaded from local disk storage:', this.dbFilePath);
+          return true;
+        }
+      }
+    } catch (e) {
+      console.warn('DB loadFromFile error:', e);
+    }
+    return false;
   }
 
   public seed(force: boolean = false) {
@@ -573,6 +620,7 @@ class MockMySQLDatabase {
     this.redemptions = data.redemptions;
     this.pointsHistory = data.pointsHistory;
     this.issues = data.issues;
+    this.saveToFile();
     console.log('[MySQL Engine] Database seeded successfully with initial community records.');
     return true;
   }
@@ -598,12 +646,16 @@ class MockMySQLDatabase {
   public createOrGetWechatUser(openid: string, customName?: string, avatarUrl?: string): { user: User; isNew: boolean } {
     let existing = this.users.find(u => u.openid === openid);
     if (existing) {
+      let changed = false;
       if (customName && customName !== existing.name && !customName.startsWith('微信居民_')) {
         existing.name = customName;
+        changed = true;
       }
       if (avatarUrl && avatarUrl !== existing.avatar) {
         existing.avatar = avatarUrl;
+        changed = true;
       }
+      if (changed) this.saveToFile();
       return { user: existing, isNew: false };
     }
 
@@ -624,6 +676,7 @@ class MockMySQLDatabase {
     };
 
     this.users.unshift(newUser);
+    this.saveToFile();
     return { user: newUser, isNew: true };
   }
 
@@ -632,6 +685,7 @@ class MockMySQLDatabase {
     if (!user) return;
     user.points = Math.max(0, user.points + pointsDelta);
     user.totalHours = Math.max(0, user.totalHours + hoursDelta);
+    this.saveToFile();
   }
 
   public createUser(userData: Partial<User>): User {
@@ -662,6 +716,7 @@ class MockMySQLDatabase {
         createdAt: new Date().toLocaleString('zh-CN', { hour12: false }),
       });
     }
+    this.saveToFile();
 
     return newUser;
   }
@@ -670,6 +725,7 @@ class MockMySQLDatabase {
     const idx = this.users.findIndex(u => u.id === userId);
     if (idx === -1) return false;
     this.users[idx] = { ...this.users[idx], ...updates };
+    this.saveToFile();
     return true;
   }
 
@@ -677,6 +733,7 @@ class MockMySQLDatabase {
     const idx = this.users.findIndex(u => u.id === userId);
     if (idx === -1) return false;
     this.users.splice(idx, 1);
+    this.saveToFile();
     return true;
   }
 
@@ -702,6 +759,7 @@ class MockMySQLDatabase {
         createdAt: now,
       });
     }
+    this.saveToFile();
 
     return true;
   }
@@ -715,6 +773,7 @@ class MockMySQLDatabase {
       createdAt: new Date().toISOString().split('T')[0],
     };
     this.activities.unshift(newAct);
+    this.saveToFile();
     return newAct;
   }
 
@@ -722,14 +781,21 @@ class MockMySQLDatabase {
     const idx = this.activities.findIndex(a => a.id === id);
     if (idx !== -1) {
       this.activities[idx] = { ...this.activities[idx], ...updates };
+      this.saveToFile();
     }
   }
 
   public deleteActivity(id: string) {
     this.activities = this.activities.filter(a => a.id !== id);
+    this.saveToFile();
   }
 
-  public registerForActivity(userId: string, activityId: string): { success: boolean; message: string; registration?: Registration } {
+  public registerForActivity(
+    userId: string, 
+    activityId: string, 
+    userName?: string, 
+    userPhone?: string
+  ): { success: boolean; message: string; registration?: Registration } {
     const act = this.activities.find(a => a.id === activityId);
     if (!act) return { success: false, message: '活动不存在' };
     if (act.signedCount >= act.maxSeats) {
@@ -741,16 +807,22 @@ class MockMySQLDatabase {
       return { success: false, message: '您已报名过此活动，请勿重复报名' };
     }
 
-    const user = this.users.find(u => u.id === userId);
-    if (!user) return { success: false, message: '居民用户信息不存在' };
+    let user = this.users.find(u => u.id === userId);
+    if (!user) {
+      if (userName) {
+        user = this.createUser({ id: userId, name: userName, phone: userPhone || '13800000000' });
+      } else {
+        return { success: false, message: '居民用户信息不存在' };
+      }
+    }
 
     const regId = 'reg_' + Date.now();
     const newReg: Registration = {
       id: regId,
       activityId: act.id,
       userId: user.id,
-      userName: user.name,
-      userPhone: user.phone,
+      userName: userName || user.name,
+      userPhone: userPhone || user.phone,
       activityTitle: act.title,
       status: 'registered',
       hours: act.hours,
@@ -760,6 +832,7 @@ class MockMySQLDatabase {
 
     this.registrations.unshift(newReg);
     act.signedCount += 1;
+    this.saveToFile();
 
     return { success: true, message: '报名成功！请按时前往指定地点参加服务', registration: newReg };
   }
@@ -773,6 +846,7 @@ class MockMySQLDatabase {
       createdAt: new Date().toLocaleString('zh-CN', { hour12: false }),
     };
     this.serviceRecords.unshift(newRec);
+    this.saveToFile();
     return newRec;
   }
 
@@ -809,6 +883,7 @@ class MockMySQLDatabase {
         }
       }
     }
+    this.saveToFile();
   }
 
   // Gifts
@@ -819,6 +894,7 @@ class MockMySQLDatabase {
       createdAt: new Date().toISOString().split('T')[0],
     };
     this.gifts.unshift(newGift);
+    this.saveToFile();
     return newGift;
   }
 
@@ -826,6 +902,7 @@ class MockMySQLDatabase {
     const idx = this.gifts.findIndex(g => g.id === id);
     if (idx !== -1) {
       this.gifts[idx] = { ...this.gifts[idx], ...updates };
+      this.saveToFile();
     }
   }
 
@@ -888,6 +965,8 @@ class MockMySQLDatabase {
       createdAt: now,
     });
 
+    this.saveToFile();
+
     return {
       success: true,
       message: '兑换成功！已生成核销二维码与兑换码',
@@ -920,6 +999,7 @@ class MockMySQLDatabase {
     red.status = 'redeemed';
     red.redeemedAt = now;
     red.verifierName = verifierName;
+    this.saveToFile();
 
     return {
       success: true,
@@ -938,6 +1018,7 @@ class MockMySQLDatabase {
       createdAt: new Date().toLocaleString('zh-CN', { hour12: false }),
     };
     this.issues.unshift(newIssue);
+    this.saveToFile();
     return newIssue;
   }
 
@@ -984,6 +1065,8 @@ class MockMySQLDatabase {
       }
     }
 
+    this.saveToFile();
+
     return {
       success: true,
       message: status === 'resolved' ? '问题已办结并向反馈居民发放积分奖励！' : '问题处理状态已更新',
@@ -995,6 +1078,7 @@ class MockMySQLDatabase {
     const idx = this.issues.findIndex(i => i.id === id);
     if (idx === -1) return false;
     this.issues.splice(idx, 1);
+    this.saveToFile();
     return true;
   }
 }
@@ -1030,15 +1114,45 @@ async function startServer() {
     res.json({ success: true, seeded, data: db.getAllData() });
   });
 
+  // Tencent CloudBase (微信云托管) Native Gateway Automatic Authorization
+  app.get('/api/wechat/tcb-auto-auth', (req, res) => {
+    const tcbOpenid = (req.headers['x-wx-openid'] || req.headers['X-WX-OPENID']) as string | undefined;
+    const tcbUnionid = (req.headers['x-wx-unionid'] || req.headers['X-WX-UNIONID']) as string | undefined;
+    const tcbAppid = (req.headers['x-wx-appid'] || req.headers['X-WX-APPID']) as string | undefined;
+
+    if (tcbOpenid) {
+      const { user, isNew } = db.createOrGetWechatUser(tcbOpenid);
+      const token = `jwt_tcb_${user.id}_${Date.now()}`;
+      return res.json({
+        success: true,
+        hasTcbHeader: true,
+        openid: tcbOpenid,
+        unionid: tcbUnionid,
+        appid: tcbAppid,
+        user,
+        token,
+        isNew,
+        message: `微信云托管网关身份自动识别成功: 【${user.name}】`
+      });
+    }
+
+    res.json({
+      success: false,
+      hasTcbHeader: false,
+      message: '当前非微信云托管网关直连环境'
+    });
+  });
+
   // WeChat Silent OAuth2.0 & OpenID Binding Routes
   app.post(['/api/wechat/login', '/api/wechat/oauth/callback'], async (req, res) => {
     try {
       const { code, openid: directOpenid, customName, name, avatarUrl } = req.body;
+      const tcbHeaderOpenid = (req.headers['x-wx-openid'] || req.headers['X-WX-OPENID']) as string | undefined;
       const appid = process.env.WECHAT_APPID || 'wx7fd578a4010d96c7';
       const secret = process.env.WECHAT_APPSECRET || '21e32182e543571dda65c67e30d4f57c';
       const enableMock = process.env.ENABLE_WECHAT_MOCK === 'true';
 
-      let targetOpenid = directOpenid;
+      let targetOpenid = directOpenid || tcbHeaderOpenid;
       let wechatNickname: string | undefined = customName || name;
       let wechatAvatar: string | undefined = avatarUrl;
 
@@ -3100,7 +3214,8 @@ Page({
 
   // WeChat JSDK Config Route for Custom Card Sharing
   app.get('/api/wechat/jssdk-config', (req, res) => {
-    const currentUrl = (req.query.url as string) || process.env.APP_URL || 'http://localhost:3000';
+    const host = req.get('host') || 'localhost:3000';
+    const currentUrl = (req.query.url as string) || process.env.APP_URL || `${req.protocol}://${host}`;
     const appid = process.env.WECHAT_APPID || 'wx_mock_appid';
     const timestamp = Math.floor(Date.now() / 1000);
     const nonceStr = Math.random().toString(36).substring(2, 15);
@@ -3184,8 +3299,8 @@ Page({
   });
 
   app.post('/api/activities/:id/register', (req, res) => {
-    const { userId } = req.body;
-    const result = db.registerForActivity(userId, req.params.id);
+    const { userId, userName, userPhone } = req.body;
+    const result = db.registerForActivity(userId, req.params.id, userName, userPhone);
     res.json(result);
   });
 

@@ -40,7 +40,8 @@ import {
   deleteCommunityIssue,
   wechatLogin,
   wechatDirectAuth,
-  getWechatAuthUrl
+  getWechatAuthUrl,
+  checkTcbAutoAuth
 } from './lib/dataService';
 import { Navbar } from './components/Navbar';
 import { WechatAuthConsole } from './components/WechatAuthConsole';
@@ -163,20 +164,23 @@ export default function App() {
       }
 
       if (codeFromUrl) {
-        showToast('微信授权认证成功，正在同步社区档案...', 'info');
+        showToast('微信授权认证成功，正在载入居民档案...', 'info');
         try {
           const wxRes = await wechatLogin(codeFromUrl);
           if (wxRes.success && wxRes.user) {
             setCurrentUser(wxRes.user);
+            setIsLoginModalOpen(false);
             if (wxRes.openid) localStorage.setItem('wechat_openid', wxRes.openid);
             localStorage.setItem('logged_in_user_id', wxRes.user.id);
+            localStorage.setItem('cached_user_profile', JSON.stringify(wxRes.user));
             showToast(wxRes.message || `微信授权登录成功！欢迎，【${wxRes.user.name}】`, 'success');
+            setResidentTab('profile');
           } else if (wxRes.message) {
             showToast(wxRes.message, 'error');
           }
         } catch (e) {
           console.error('WeChat code exchange error:', e);
-          showToast('微信授权解析成功，已载入居民档案', 'success');
+          showToast('微信授权认证成功，欢迎进入社区积分系统', 'success');
         }
         const cleanUrl = window.location.pathname;
         window.history.replaceState({}, document.title, cleanUrl);
@@ -184,15 +188,39 @@ export default function App() {
         // Check local storage for persistent login
         const savedUserId = localStorage.getItem('logged_in_user_id');
         const savedOpenid = localStorage.getItem('wechat_openid');
+        const cachedUserJson = localStorage.getItem('cached_user_profile');
+
+        if (cachedUserJson) {
+          try {
+            const parsed = JSON.parse(cachedUserJson);
+            if (parsed && parsed.id) {
+              setCurrentUser(parsed);
+            }
+          } catch {
+            // ignore
+          }
+        }
 
         if (savedOpenid) {
           try {
             const wxRes = await wechatLogin(undefined, savedOpenid);
             if (wxRes.success && wxRes.user) {
               setCurrentUser(wxRes.user);
+              localStorage.setItem('cached_user_profile', JSON.stringify(wxRes.user));
             }
           } catch (e) {
             console.warn('Saved WeChat openid login error:', e);
+          }
+        } else if (!savedUserId) {
+          // If running directly on Tencent CloudBase inside WeChat browser/webview
+          try {
+            const tcbAuth = await checkTcbAutoAuth();
+            if (tcbAuth.success && tcbAuth.user) {
+              setCurrentUser(tcbAuth.user);
+              showToast(`微信云托管免登识别成功！欢迎，【${tcbAuth.user.name}】`, 'success');
+            }
+          } catch (e) {
+            // Non-blocking
           }
         }
       }

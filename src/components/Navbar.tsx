@@ -99,7 +99,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                   className="flex items-center space-x-1.5 bg-red-700/90 hover:bg-red-700 px-2 sm:px-2.5 py-1.5 rounded-lg border border-red-500/50 text-xs text-white transition-colors cursor-pointer"
                   title="点击管理/切换当前账号或退出"
                 >
-                  <span className="text-base">{currentUser.avatar}</span>
+                  <span className="w-5 h-5 rounded-full overflow-hidden flex items-center justify-center text-xs shrink-0 bg-red-800/80">
+                    {currentUser.avatar && (currentUser.avatar.startsWith('http') || currentUser.avatar.startsWith('data:')) ? (
+                      <img src={currentUser.avatar} alt={currentUser.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span>{currentUser.avatar || '👤'}</span>
+                    )}
+                  </span>
                   <span className="font-semibold max-w-[70px] sm:max-w-none truncate">{currentUser.name}</span>
                   {currentUser.role === 'party_member' && (
                     <span className="bg-amber-300 text-red-900 font-extrabold px-1.5 py-0.5 rounded text-[10px] hidden xs:inline flex items-center space-x-0.5">

@@ -107,8 +107,12 @@ export const MyProfile: React.FC<MyProfileProps> = ({
       <div className="bg-white rounded-3xl p-4 sm:p-6 border border-slate-200/90 shadow-xs space-y-3 sm:space-y-4">
         <div className="flex items-start sm:items-center justify-between gap-2">
           <div className="flex items-start sm:items-center space-x-3 sm:space-x-4 min-w-0 flex-1">
-            <div className="text-3xl sm:text-4xl bg-red-50 p-2 sm:p-3 rounded-2xl border border-red-100 shrink-0 mt-0.5 sm:mt-0">
-              {currentUser.avatar}
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl border border-red-100 shrink-0 overflow-hidden bg-red-50 flex items-center justify-center text-3xl sm:text-4xl shadow-xs">
+              {currentUser.avatar && (currentUser.avatar.startsWith('http') || currentUser.avatar.startsWith('data:')) ? (
+                <img src={currentUser.avatar} alt={currentUser.name} className="w-full h-full object-cover" />
+              ) : (
+                <span>{currentUser.avatar || '👤'}</span>
+              )}
             </div>
             <div className="space-y-1 min-w-0 flex-1">
               <div className="flex items-center space-x-1.5 sm:space-x-2 flex-wrap gap-y-1">

@@ -11,7 +11,9 @@ import {
   CommunityIssue, 
   UserRole,
   WechatLoginResponse,
-  IssueStatus
+  IssueStatus,
+  SystemEnvMode,
+  SystemEnvInfo
 } from '../types';
 import { getPublicAppUrl } from './appConfig';
 
@@ -987,10 +989,73 @@ export async function verifyRedemptionCode(
   }
 }
 
+// System Environment Mode Helpers (Production vs Test)
+let cachedEnvInfo: SystemEnvInfo | null = null;
+
+export async function getSystemEnvInfo(): Promise<SystemEnvInfo> {
+  try {
+    const res = await fetch('/api/system/env-mode');
+    const data = await res.json();
+    cachedEnvInfo = {
+      envMode: data.envMode || 'production',
+      isProduction: data.isProduction ?? (data.envMode === 'production'),
+      wechatAppId: data.wechatConfig?.appid || '',
+      hasAppSecret: Boolean(data.wechatConfig?.hasSecret),
+      isTcbGateway: Boolean(data.isTcbGateway),
+      currentHost: data.currentHost,
+    };
+    return cachedEnvInfo;
+  } catch (e) {
+    return cachedEnvInfo || {
+      envMode: 'production',
+      isProduction: true,
+      wechatAppId: 'wx7fd578a4010d96c7',
+      hasAppSecret: true,
+      isTcbGateway: false,
+    };
+  }
+}
+
+export async function switchSystemEnvMode(
+  newMode: SystemEnvMode, 
+  wechatAppId?: string, 
+  wechatAppSecret?: string
+): Promise<{ success: boolean; message: string; envInfo?: SystemEnvInfo }> {
+  try {
+    const res = await fetch('/api/system/env-mode', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ envMode: newMode, wechatAppId, wechatAppSecret }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      cachedEnvInfo = {
+        envMode: data.envMode,
+        isProduction: data.isProduction,
+        wechatAppId: data.wechatConfig?.appid,
+        hasAppSecret: data.wechatConfig?.hasSecret,
+        isTcbGateway: data.isTcbGateway,
+        currentHost: data.currentHost,
+      };
+      // Immediately reload data matching the switched environment
+      await fetchAndSyncAllData();
+    }
+    return {
+      success: data.success ?? true,
+      message: data.message || `环境模式已切换至 ${newMode}`,
+      envInfo: cachedEnvInfo || undefined,
+    };
+  } catch (e: any) {
+    return { success: false, message: '切换环境异常: ' + e.message };
+  }
+}
+
 // WeChat Login & Integration Handlers
 export async function wechatDirectAuth(customName?: string): Promise<WechatLoginResponse> {
   try {
     const isWechatBrowser = typeof navigator !== 'undefined' && /micromessenger/i.test(navigator.userAgent);
+    
+    // In WeChat Browser: Directly launch official WeChat OAuth2.0
     if (isWechatBrowser) {
       const cleanUri = window.location.href.split('?')[0];
       const authUrlRes = await fetch(`/api/wechat/auth-url?redirect_uri=${encodeURIComponent(cleanUri)}`);
@@ -1001,10 +1066,20 @@ export async function wechatDirectAuth(customName?: string): Promise<WechatLogin
       }
     }
 
+    // Check system env mode
+    const envInfo = await getSystemEnvInfo();
+    if (envInfo.isProduction) {
+      return {
+        success: false,
+        message: '当前系统运行在【真实微信生产模式】。由于您当前未在微信客户端中打开，请使用微信打开此网页，或点击“微信扫码登录”使用手机微信扫一扫授权。',
+      };
+    }
+
+    // In Test Mode: Allow mock login
     let savedOpenid = typeof localStorage !== 'undefined' ? localStorage.getItem('wechat_openid') : null;
-    if (!savedOpenid) {
+    if (!savedOpenid || savedOpenid.startsWith('wx_user_')) {
       const rand = Math.floor(1000 + Math.random() * 9000);
-      savedOpenid = `wx_openid_${Date.now().toString(36)}_${rand}`;
+      savedOpenid = `mock_openid_${Date.now().toString(36)}_${rand}`;
       if (typeof localStorage !== 'undefined') localStorage.setItem('wechat_openid', savedOpenid);
     }
 

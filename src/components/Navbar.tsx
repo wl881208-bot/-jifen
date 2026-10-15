@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User } from '../types';
+import { User, SystemEnvMode } from '../types';
 import { QRCodeSVG } from 'qrcode.react';
 import { 
   HeartHandshake, 
@@ -16,7 +16,9 @@ import {
   Smartphone,
   LogIn,
   LogOut,
-  User as UserIcon
+  User as UserIcon,
+  FlaskConical,
+  Settings2
 } from 'lucide-react';
 
 import { getPublicAppUrl } from '../lib/appConfig';
@@ -36,6 +38,8 @@ interface NavbarProps {
   onToggleMobileSimulator?: () => void;
   showDebugTools?: boolean;
   onToggleDebugTools?: () => void;
+  currentEnvMode?: SystemEnvMode;
+  onOpenEnvSwitchModal?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -53,6 +57,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onToggleMobileSimulator,
   showDebugTools = false,
   onToggleDebugTools,
+  currentEnvMode = 'production',
+  onOpenEnvSwitchModal,
 }) => {
   const [showUserDropdown, setShowUserDropdown] = React.useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
@@ -91,6 +97,26 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Right Action Bar */}
           <div className="flex items-center space-x-1.5 sm:space-x-2.5">
             
+            {/* Global Environment Mode Switcher Button (Production vs Test) */}
+            <button
+              type="button"
+              onClick={onOpenEnvSwitchModal}
+              className={`px-2 py-1 sm:px-2.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 border shadow-xs cursor-pointer shrink-0 active:scale-95 ${
+                currentEnvMode === 'production'
+                  ? 'bg-emerald-800/90 hover:bg-emerald-800 text-emerald-100 border-emerald-400/60'
+                  : 'bg-amber-400 hover:bg-amber-300 text-slate-950 border-amber-200'
+              }`}
+              title="点击切换：真实微信生产环境 / 模拟测试演练环境"
+            >
+              <span className={`w-2 h-2 rounded-full shrink-0 ${currentEnvMode === 'production' ? 'bg-emerald-300 animate-pulse' : 'bg-amber-900'}`} />
+              <span className="hidden xs:inline">
+                {currentEnvMode === 'production' ? '🟢 真实微信' : '🟡 测试模式'}
+              </span>
+              <span className="xs:hidden">
+                {currentEnvMode === 'production' ? '真实' : '测试'}
+              </span>
+            </button>
+
             {/* Current Active User Info / Dropdown OR Login Button */}
             {currentUser ? (
               <div className="relative">
@@ -142,43 +168,56 @@ export const Navbar: React.FC<NavbarProps> = ({
                         </div>
                       </div>
 
-                      <div className="px-3.5 py-1.5 text-slate-400 font-semibold text-[10px]">
-                        切换不同居民账号体验：
-                      </div>
+                      {/* Environment-specific body in user menu */}
+                      {currentEnvMode === 'production' ? (
+                        <div className="px-3.5 py-3 text-[11px] text-emerald-900 bg-emerald-50/70 border-b border-emerald-100 flex items-center space-x-2">
+                          <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <div>
+                            <div className="font-bold">🟢 微信官方实名认证档案</div>
+                            <div className="text-[10px] text-emerald-700">志愿工时与爱心积分受官方链式存证</div>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="px-3.5 py-1.5 text-slate-400 font-semibold text-[10px]">
+                            切换不同居民账号体验（演练测试）：
+                          </div>
 
-                      <div className="max-h-48 overflow-y-auto">
-                        {users.filter(u => u.role !== 'admin').map((u) => (
-                          <button
-                            key={u.id}
-                            onClick={() => {
-                              onUserSelect(u);
-                              setShowUserDropdown(false);
-                            }}
-                            className={`w-full text-left px-3.5 py-2 flex items-center justify-between hover:bg-red-50 transition-colors cursor-pointer ${
-                              currentUser.id === u.id ? 'bg-red-50/80 font-bold text-red-700' : ''
-                            }`}
-                          >
-                            <div className="flex items-center space-x-2 truncate pr-1">
-                              <span className="text-base">{u.avatar}</span>
-                              <div className="truncate">
-                                <div className="font-medium text-slate-800 truncate">{u.name}</div>
-                                <div className="text-[10px] text-slate-400">
-                                  {u.points}积分 · {u.totalHours}工时
+                          <div className="max-h-48 overflow-y-auto">
+                            {users.filter(u => u.role !== 'admin').map((u) => (
+                              <button
+                                key={u.id}
+                                onClick={() => {
+                                  onUserSelect(u);
+                                  setShowUserDropdown(false);
+                                }}
+                                className={`w-full text-left px-3.5 py-2 flex items-center justify-between hover:bg-red-50 transition-colors cursor-pointer ${
+                                  currentUser.id === u.id ? 'bg-red-50/80 font-bold text-red-700' : ''
+                                }`}
+                              >
+                                <div className="flex items-center space-x-2 truncate pr-1">
+                                  <span className="text-base">{u.avatar}</span>
+                                  <div className="truncate">
+                                    <div className="font-medium text-slate-800 truncate">{u.name}</div>
+                                    <div className="text-[10px] text-slate-400">
+                                      {u.points}积分 · {u.totalHours}工时
+                                    </div>
+                                  </div>
                                 </div>
-                              </div>
-                            </div>
-                            {u.role === 'party_member' ? (
-                              <span className="bg-red-100 text-red-700 px-1.5 py-0.5 rounded text-[10px] font-bold shrink-0">
-                                党员 🚩
-                              </span>
-                            ) : (
-                              <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[10px] shrink-0">
-                                居民
-                              </span>
-                            )}
-                          </button>
-                        ))}
-                      </div>
+                                {u.role === 'party_member' ? (
+                                  <span className="bg-red-100 text-red-700 px-1.5 py-0.5 rounded text-[10px] font-bold shrink-0">
+                                    党员 🚩
+                                  </span>
+                                ) : (
+                                  <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[10px] shrink-0">
+                                    居民
+                                  </span>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      )}
 
                       {/* Logout Action */}
                       <div className="pt-1.5 mt-1.5 border-t border-slate-100 px-2">

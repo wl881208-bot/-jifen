@@ -8,7 +8,8 @@ import {
   Redemption, 
   PointsHistoryItem,
   CommunityIssue,
-  IssueStatus
+  IssueStatus,
+  SystemEnvMode
 } from './types';
 import { 
   seedDatabase, 
@@ -41,13 +42,15 @@ import {
   wechatLogin,
   wechatDirectAuth,
   getWechatAuthUrl,
-  checkTcbAutoAuth
+  checkTcbAutoAuth,
+  getSystemEnvInfo
 } from './lib/dataService';
 import { Navbar } from './components/Navbar';
 import { WechatAuthConsole } from './components/WechatAuthConsole';
 import { MiniProgramConsole } from './components/MiniProgramConsole';
 import { LoginModal } from './components/LoginModal';
 import { ScanAuthModal } from './components/ScanAuthModal';
+import { EnvSwitchModal } from './components/EnvSwitchModal';
 import { CommunitySnapModal } from './components/resident/CommunitySnapModal';
 import { CommunitySnapFeedModal } from './components/resident/CommunitySnapFeedModal';
 import { initWechatJssdk } from './lib/wechatJssdk';
@@ -90,6 +93,10 @@ export default function App() {
 
   // Active User: Defaults to null (Guest / Unlogged in) unless persisted in localStorage
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+
+  // System Environment Mode: 'production' (Real WeChat) vs 'test' (Mock)
+  const [envMode, setEnvMode] = useState<SystemEnvMode>('production');
+  const [isEnvSwitchModalOpen, setIsEnvSwitchModalOpen] = useState(false);
 
   // Login Modal State (Resident H5)
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -148,6 +155,33 @@ export default function App() {
       // Initialize WeChat JSDK setup
       initWechatJssdk();
 
+      // Load System Environment Mode (Production vs Test)
+      let activeEnv: SystemEnvMode = 'production';
+      try {
+        const sysEnv = await getSystemEnvInfo();
+        activeEnv = sysEnv.envMode;
+        setEnvMode(sysEnv.envMode);
+      } catch (err) {
+        console.warn('Failed to fetch system env mode:', err);
+      }
+
+      // In production mode: proactively sanitize localStorage to evict any stale test personas
+      if (activeEnv === 'production') {
+        const savedUserId = localStorage.getItem('logged_in_user_id');
+        const savedOpenid = localStorage.getItem('wechat_openid');
+        const isTestPersona = Boolean(
+          (savedUserId && (savedUserId === 'user_1' || savedUserId === 'user_2' || savedUserId === 'user_3' || savedUserId.startsWith('mock_'))) ||
+          (savedOpenid && (savedOpenid.startsWith('mock_') || savedOpenid.startsWith('fake_')))
+        );
+        if (isTestPersona) {
+          localStorage.removeItem('logged_in_user_id');
+          localStorage.removeItem('wechat_openid');
+          localStorage.removeItem('cached_user_profile');
+          setCurrentUser(null);
+          showToast('当前处于【真实微信生产模式】，已清除历史模拟测试身份，请使用微信官方授权。', 'info');
+        }
+      }
+
       // Seed MySQL mock engine with initial dataset if empty
       await seedDatabase(false);
 
@@ -164,7 +198,7 @@ export default function App() {
       }
 
       if (codeFromUrl) {
-        showToast('微信授权认证成功，正在载入居民档案...', 'info');
+        showToast('微信官方授权认证中，正在载入居民档案...', 'info');
         try {
           const wxRes = await wechatLogin(codeFromUrl);
           if (wxRes.success && wxRes.user) {
@@ -175,12 +209,12 @@ export default function App() {
             localStorage.setItem('cached_user_profile', JSON.stringify(wxRes.user));
             showToast(wxRes.message || `微信授权登录成功！欢迎，【${wxRes.user.name}】`, 'success');
             setResidentTab('profile');
-          } else if (wxRes.message) {
-            showToast(wxRes.message, 'error');
+          } else {
+            showToast(wxRes.message || '微信官方授权失败，请在微信公众平台检查配置', 'error');
           }
-        } catch (e) {
+        } catch (e: any) {
           console.error('WeChat code exchange error:', e);
-          showToast('微信授权认证成功，欢迎进入社区积分系统', 'success');
+          showToast('微信授权异常: ' + (e.message || '网络连接超时'), 'error');
         }
         const cleanUrl = window.location.pathname;
         window.history.replaceState({}, document.title, cleanUrl);
@@ -194,14 +228,17 @@ export default function App() {
           try {
             const parsed = JSON.parse(cachedUserJson);
             if (parsed && parsed.id) {
-              setCurrentUser(parsed);
+              const isTest = parsed.id === 'user_1' || parsed.id === 'user_2' || parsed.id === 'user_3' || Boolean(parsed.openid?.startsWith('mock_'));
+              if (activeEnv !== 'production' || !isTest) {
+                setCurrentUser(parsed);
+              }
             }
           } catch {
             // ignore
           }
         }
 
-        if (savedOpenid) {
+        if (savedOpenid && (!savedOpenid.startsWith('mock_') || activeEnv === 'test')) {
           try {
             const wxRes = await wechatLogin(undefined, savedOpenid);
             if (wxRes.success && wxRes.user) {
@@ -233,7 +270,17 @@ export default function App() {
           if (!prev) {
             const savedUserId = localStorage.getItem('logged_in_user_id');
             if (savedUserId) {
-              return u.find(user => user.id === savedUserId) || null;
+              const matched = u.find(user => user.id === savedUserId);
+              if (matched) {
+                const isTest = matched.id === 'user_1' || matched.id === 'user_2' || matched.id === 'user_3' || Boolean(matched.openid?.startsWith('mock_'));
+                if (activeEnv === 'production' && isTest) {
+                  localStorage.removeItem('logged_in_user_id');
+                  localStorage.removeItem('wechat_openid');
+                  localStorage.removeItem('cached_user_profile');
+                  return null;
+                }
+                return matched;
+              }
             }
             return null;
           }
@@ -313,6 +360,10 @@ export default function App() {
 
   // Active User Selection (e.g. from dropdown or switcher)
   const handleUserSelect = (user: User) => {
+    if (envMode === 'production') {
+      showToast('真实微信生产模式下已禁用测试账号切换', 'error');
+      return;
+    }
     localStorage.setItem('logged_in_user_id', user.id);
     if (user.openid) localStorage.setItem('wechat_openid', user.openid);
     setCurrentUser(user);
@@ -467,6 +518,20 @@ export default function App() {
           onAdjustPoints={adjustUserPoints}
           onHandleIssue={handleAdminHandleIssue}
           onDeleteIssue={handleAdminDeleteIssue}
+          currentEnvMode={envMode}
+          onOpenEnvSwitchModal={() => setIsEnvSwitchModalOpen(true)}
+        />
+
+        {/* System Environment Mode Switcher Modal in Admin */}
+        <EnvSwitchModal
+          isOpen={isEnvSwitchModalOpen}
+          onClose={() => setIsEnvSwitchModalOpen(false)}
+          currentMode={envMode}
+          onModeChanged={(newMode) => {
+            setEnvMode(newMode);
+            showToast(`系统环境已切换至：【${newMode === 'production' ? '真实微信生产模式' : '模拟测试演练模式'}】`, 'success');
+          }}
+          onShowMessage={(msg, type) => showToast(msg, type)}
         />
 
         {/* Global Toast Notification */}
@@ -525,6 +590,8 @@ export default function App() {
               handleUserSelect(user);
             }}
             onShowMessage={(msg) => showToast(msg)}
+            currentEnvMode={envMode}
+            onOpenEnvSwitchModal={() => setIsEnvSwitchModalOpen(true)}
           />
         </div>
       )}
@@ -545,6 +612,8 @@ export default function App() {
         onToggleMobileSimulator={() => setIsMobileSimulated(!isMobileSimulated)}
         showDebugTools={showDebugTools}
         onToggleDebugTools={() => setShowDebugTools(!showDebugTools)}
+        currentEnvMode={envMode}
+        onOpenEnvSwitchModal={() => setIsEnvSwitchModalOpen(true)}
       />
 
       {/* Main Core View Area - Normal vs Smartphone Shell */}
@@ -633,6 +702,7 @@ export default function App() {
                 {residentTab === 'profile' && (
                   <MyProfile
                     currentUser={currentUser}
+                    currentEnvMode={envMode}
                     registrations={registrations}
                     serviceRecords={serviceRecords}
                     redemptions={redemptions}
@@ -725,6 +795,7 @@ export default function App() {
             {residentTab === 'profile' && (
               <MyProfile
                 currentUser={currentUser}
+                currentEnvMode={envMode}
                 registrations={registrations}
                 serviceRecords={serviceRecords}
                 redemptions={redemptions}
@@ -745,6 +816,29 @@ export default function App() {
         onLoginSuccess={handleLoginSuccess}
         users={users}
         defaultPrompt={loginPromptText}
+        currentEnvMode={envMode}
+        onOpenEnvSwitchModal={() => setIsEnvSwitchModalOpen(true)}
+      />
+
+      {/* System Environment Mode Switcher Modal */}
+      <EnvSwitchModal
+        isOpen={isEnvSwitchModalOpen}
+        onClose={() => setIsEnvSwitchModalOpen(false)}
+        currentMode={envMode}
+        onModeChanged={(newMode) => {
+          setEnvMode(newMode);
+          if (newMode === 'production') {
+            // Check if active user is a mock/test user
+            if (currentUser && (currentUser.id === 'user_1' || currentUser.id === 'user_2' || currentUser.id === 'user_3' || currentUser.id.startsWith('mock_') || currentUser.openid?.startsWith('mock_'))) {
+              setCurrentUser(null);
+              localStorage.removeItem('logged_in_user_id');
+              localStorage.removeItem('wechat_openid');
+              localStorage.removeItem('cached_user_profile');
+              showToast('已切换至真实微信生产模式，已自动清理本地模拟测试身份。请使用微信官方授权。', 'info');
+            }
+          }
+        }}
+        onShowMessage={(msg, type) => showToast(msg, type)}
       />
 
       {/* Mobile Scan Confirmation Modal */}
@@ -752,6 +846,7 @@ export default function App() {
         <ScanAuthModal
           ticket={mobileScanTicket}
           currentUser={currentUser}
+          currentEnvMode={envMode}
           onClose={() => setMobileScanTicket(null)}
           onAuthSuccess={(user) => {
             setCurrentUser(user);

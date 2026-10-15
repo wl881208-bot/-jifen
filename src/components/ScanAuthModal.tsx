@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User } from '../types';
+import { User, SystemEnvMode } from '../types';
 import { notifyScanTicket, confirmScanLogin, createUser } from '../lib/dataService';
 import { 
   ShieldCheck, 
@@ -19,6 +19,7 @@ import {
 interface ScanAuthModalProps {
   ticket: string;
   currentUser: User | null;
+  currentEnvMode?: SystemEnvMode;
   onClose: () => void;
   onAuthSuccess?: (user: User) => void;
   onShowMessage: (msg: string, type?: 'success' | 'error' | 'info') => void;
@@ -27,13 +28,18 @@ interface ScanAuthModalProps {
 export const ScanAuthModal: React.FC<ScanAuthModalProps> = ({
   ticket,
   currentUser,
+  currentEnvMode = 'production',
   onClose,
   onAuthSuccess,
   onShowMessage,
 }) => {
   const [loading, setLoading] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
-  const [authorizedUser, setAuthorizedUser] = useState<User | null>(currentUser);
+  const [authorizedUser, setAuthorizedUser] = useState<User | null>(
+    currentUser && currentEnvMode === 'production' && (currentUser.id === 'user_1' || currentUser.id === 'user_2' || currentUser.id === 'user_3' || currentUser.openid?.startsWith('mock_'))
+      ? null
+      : currentUser
+  );
   const [customName, setCustomName] = useState(currentUser?.name || '');
   const [selectedPreset, setSelectedPreset] = useState<string>('new_wx');
   const [isWeChat, setIsWeChat] = useState(false);
@@ -56,30 +62,10 @@ export const ScanAuthModal: React.FC<ScanAuthModalProps> = ({
   const handleConfirm = async () => {
     setLoading(true);
     try {
-      let targetUser: User | null = currentUser;
+      let targetUser: User | null = null;
 
-      if (currentUser) {
-        targetUser = currentUser;
-      } else if (selectedPreset !== 'new_wx') {
-        const found = presetIdentities.find(p => p.id === selectedPreset);
-        if (found) {
-          targetUser = {
-            id: found.id,
-            name: found.name,
-            phone: found.phone,
-            avatar: found.avatar,
-            role: found.id === 'user_1' ? 'resident' : 'party_member',
-            points: found.id === 'user_1' ? 320 : found.id === 'user_2' ? 180 : 260,
-            totalHours: found.id === 'user_1' ? 28.5 : found.id === 'user_2' ? 18.5 : 24.0,
-            badge: found.id === 'user_1' ? '社区志愿榜样' : '党员先锋志愿者',
-            joinedDate: '2025-03-12',
-            openid: `wx_${found.id}`,
-          };
-        }
-      }
-
-      if (!targetUser) {
-        // Create new user for this mobile scan
+      // In production mode, always enforce genuine resident identity (0 points initial)
+      if (currentEnvMode === 'production') {
         const randId = Math.floor(1000 + Math.random() * 9000);
         const name = customName.trim() || `微信居民_${randId}`;
         const openid = `wx_scan_${Date.now().toString(36)}_${randId}`;
@@ -90,15 +76,48 @@ export const ScanAuthModal: React.FC<ScanAuthModalProps> = ({
           role: 'resident',
           points: 0,
           totalHours: 0,
-          badge: '新注册志愿者',
+          badge: '微信社区新人',
           openid,
         });
+        targetUser = createRes.data || {
+          id: 'user_wx_' + Date.now(),
+          name,
+          phone: `138****${randId}`,
+          avatar: '👤',
+          role: 'resident',
+          points: 0,
+          totalHours: 0,
+          badge: '微信社区新人',
+          joinedDate: new Date().toISOString().split('T')[0],
+          openid,
+        };
+      } else {
+        // In test mode: allow choosing from preset personas
+        if (currentUser) {
+          targetUser = currentUser;
+        } else if (selectedPreset !== 'new_wx') {
+          const found = presetIdentities.find(p => p.id === selectedPreset);
+          if (found) {
+            targetUser = {
+              id: found.id,
+              name: found.name,
+              phone: found.phone,
+              avatar: found.avatar,
+              role: found.id === 'user_1' ? 'resident' : 'party_member',
+              points: found.id === 'user_1' ? 320 : found.id === 'user_2' ? 180 : 260,
+              totalHours: found.id === 'user_1' ? 28.5 : found.id === 'user_2' ? 18.5 : 24.0,
+              badge: found.id === 'user_1' ? '社区志愿榜样' : '党员先锋志愿者',
+              joinedDate: '2025-03-12',
+              openid: `wx_${found.id}`,
+            };
+          }
+        }
 
-        if (createRes.success && createRes.data) {
-          targetUser = createRes.data;
-        } else {
-          targetUser = {
-            id: 'user_wx_' + Date.now(),
+        if (!targetUser) {
+          const randId = Math.floor(1000 + Math.random() * 9000);
+          const name = customName.trim() || `微信居民_${randId}`;
+          const openid = `mock_scan_${Date.now().toString(36)}_${randId}`;
+          const createRes = await createUser({
             name,
             phone: `138****${randId}`,
             avatar: '👤',
@@ -106,10 +125,14 @@ export const ScanAuthModal: React.FC<ScanAuthModalProps> = ({
             points: 0,
             totalHours: 0,
             badge: '新注册志愿者',
-            joinedDate: new Date().toISOString().split('T')[0],
             openid,
-          };
+          });
+          targetUser = createRes.data || null;
         }
+      }
+
+      if (!targetUser) {
+        throw new Error('未能生成有效的微信居民身份');
       }
 
       setAuthorizedUser(targetUser);
@@ -224,56 +247,81 @@ export const ScanAuthModal: React.FC<ScanAuthModalProps> = ({
               </div>
             ) : (
               <div className="space-y-2.5">
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">选择授权身份：</label>
-                  <div className="space-y-1.5">
-                    <label className={`flex items-center space-x-2.5 p-2 rounded-xl border text-xs cursor-pointer transition-all ${
-                      selectedPreset === 'new_wx' ? 'border-emerald-500 bg-emerald-50/50 font-bold text-emerald-900' : 'border-slate-200 hover:bg-slate-50 text-slate-700'
-                    }`}>
-                      <input
-                        type="radio"
-                        name="preset"
-                        checked={selectedPreset === 'new_wx'}
-                        onChange={() => setSelectedPreset('new_wx')}
-                        className="text-emerald-600 focus:ring-emerald-500"
-                      />
-                      <span>👤 创建专属微信居民档案 (新居民)</span>
-                    </label>
+                {currentEnvMode === 'production' ? (
+                  <div className="space-y-2.5">
+                    <div className="p-3 bg-emerald-50/90 rounded-xl border border-emerald-200 text-xs text-emerald-950 space-y-1">
+                      <div className="font-bold flex items-center space-x-1 text-emerald-800">
+                        <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span>真实微信实名服务通道</span>
+                      </div>
+                      <p className="text-[11px] text-emerald-800/90 leading-relaxed">
+                        点击确认后，将为您生成合法的微信居民档案（0积分起步），电脑端将即刻完成登录同步。
+                      </p>
+                    </div>
 
-                    {presetIdentities.map((p) => (
-                      <label 
-                        key={p.id}
-                        className={`flex items-center space-x-2.5 p-2 rounded-xl border text-xs cursor-pointer transition-all ${
-                          selectedPreset === p.id ? 'border-emerald-500 bg-emerald-50/50 font-bold text-emerald-900' : 'border-slate-200 hover:bg-slate-50 text-slate-700'
-                        }`}
-                      >
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-semibold text-slate-700">居民姓名 / 志愿昵称（可选）：</label>
+                      <input
+                        type="text"
+                        placeholder="例如：王阿姨 / 志愿小李（留空自动使用微信默认昵称）"
+                        value={customName}
+                        onChange={(e) => setCustomName(e.target.value)}
+                        className="w-full text-xs px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-white"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">选择授权身份（测试演练）：</label>
+                    <div className="space-y-1.5">
+                      <label className={`flex items-center space-x-2.5 p-2 rounded-xl border text-xs cursor-pointer transition-all ${
+                        selectedPreset === 'new_wx' ? 'border-emerald-500 bg-emerald-50/50 font-bold text-emerald-900' : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+                      }`}>
                         <input
                           type="radio"
                           name="preset"
-                          checked={selectedPreset === p.id}
-                          onChange={() => setSelectedPreset(p.id)}
+                          checked={selectedPreset === 'new_wx'}
+                          onChange={() => setSelectedPreset('new_wx')}
                           className="text-emerald-600 focus:ring-emerald-500"
                         />
-                        <span className="text-base">{p.avatar}</span>
-                        <div className="flex-1 min-w-0">
-                          <span className="truncate">{p.name}</span>
-                          <span className="block text-[10px] text-slate-400 font-normal">{p.desc}</span>
-                        </div>
+                        <span>👤 创建专属微信居民档案 (新居民)</span>
                       </label>
-                    ))}
-                  </div>
-                </div>
 
-                {selectedPreset === 'new_wx' && (
-                  <div className="space-y-1">
-                    <label className="text-[11px] font-semibold text-slate-600">您的居民昵称（可选）：</label>
-                    <input
-                      type="text"
-                      placeholder="例如：王阿姨 / 志愿小李"
-                      value={customName}
-                      onChange={(e) => setCustomName(e.target.value)}
-                      className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
-                    />
+                      {presetIdentities.map((p) => (
+                        <label 
+                          key={p.id}
+                          className={`flex items-center space-x-2.5 p-2 rounded-xl border text-xs cursor-pointer transition-all ${
+                            selectedPreset === p.id ? 'border-emerald-500 bg-emerald-50/50 font-bold text-emerald-900' : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="preset"
+                            checked={selectedPreset === p.id}
+                            onChange={() => setSelectedPreset(p.id)}
+                            className="text-emerald-600 focus:ring-emerald-500"
+                          />
+                          <span className="text-base">{p.avatar}</span>
+                          <div className="flex-1 min-w-0">
+                            <span className="truncate">{p.name}</span>
+                            <span className="block text-[10px] text-slate-400 font-normal">{p.desc}</span>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+
+                    {selectedPreset === 'new_wx' && (
+                      <div className="space-y-1 mt-2">
+                        <label className="text-[11px] font-semibold text-slate-600">您的居民昵称（可选）：</label>
+                        <input
+                          type="text"
+                          placeholder="例如：王阿姨 / 志愿小李"
+                          value={customName}
+                          onChange={(e) => setCustomName(e.target.value)}
+                          className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

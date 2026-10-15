@@ -166,3 +166,14 @@ export interface MiniProgramSourceFile {
   description: string;
 }
 
+export type SystemEnvMode = 'production' | 'test';
+
+export interface SystemEnvInfo {
+  envMode: SystemEnvMode;
+  isProduction: boolean;
+  wechatAppId: string;
+  hasAppSecret: boolean;
+  isTcbGateway: boolean;
+  currentHost?: string;
+}
+

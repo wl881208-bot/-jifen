@@ -1,4 +1,7 @@
 {
+  "envMode": "production",
+  "wechatAppId": "wx8b069e2f10f2e2da",
+  "wechatAppSecret": "21e32182e543571dda65c67e30d4f57c",
   "users": [
     {
       "id": "user_wx_1791969467742",

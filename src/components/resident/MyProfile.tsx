@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Registration, ServiceRecord, Redemption, PointsHistoryItem } from '../../types';
+import { User, Registration, ServiceRecord, Redemption, PointsHistoryItem, SystemEnvMode } from '../../types';
 import { QRCodeSVG } from 'qrcode.react';
 import { 
   User as UserIcon, 
@@ -11,16 +11,17 @@ import {
   TrendingUp, 
   CheckCircle2, 
   Clock3, 
-  X,
-  ChevronRight,
-  LogOut,
-  LogIn,
-  Sparkles,
-  Lock
+  X, 
+  ChevronRight, 
+  LogOut, 
+  LogIn, 
+  Sparkles, 
+  Lock 
 } from 'lucide-react';
 
 interface MyProfileProps {
   currentUser: User | null;
+  currentEnvMode?: SystemEnvMode;
   registrations: Registration[];
   serviceRecords: ServiceRecord[];
   redemptions: Redemption[];
@@ -32,6 +33,7 @@ interface MyProfileProps {
 
 export const MyProfile: React.FC<MyProfileProps> = ({
   currentUser,
+  currentEnvMode = 'production',
   registrations,
   serviceRecords,
   redemptions,
@@ -77,13 +79,15 @@ export const MyProfile: React.FC<MyProfileProps> = ({
               <span>微信一键授权登录</span>
             </button>
 
-            <button
-              onClick={() => onOpenLoginModal?.('切换不同身份账号体验测试')}
-              className="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-2xl text-xs transition-all flex items-center justify-center space-x-1.5 cursor-pointer"
-            >
-              <LogIn className="w-4 h-4" />
-              <span>选择体验账号</span>
-            </button>
+            {currentEnvMode === 'test' && (
+              <button
+                onClick={() => onOpenLoginModal?.('切换不同身份账号体验测试')}
+                className="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-2xl text-xs transition-all flex items-center justify-center space-x-1.5 cursor-pointer"
+              >
+                <LogIn className="w-4 h-4" />
+                <span>选择体验账号</span>
+              </button>
+            )}
           </div>
 
           <div className="pt-4 border-t border-slate-100 text-xs text-slate-400">

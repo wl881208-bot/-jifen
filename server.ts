@@ -547,6 +547,196 @@ function getDefaultData() {
   return { users, activities, gifts, registrations, serviceRecords, redemptions, pointsHistory, issues };
 }
 
+function getProductionDefaultData() {
+  const users: User[] = [
+    {
+      id: 'user_admin',
+      name: '王主任 (管理员)',
+      phone: '133****9999',
+      avatar: '👮‍♂️',
+      role: 'admin',
+      points: 999,
+      totalHours: 100.0,
+      badge: '社区党群管理者',
+      joinedDate: '2024-01-01',
+      openid: 'wx_admin_prod_official',
+    },
+  ];
+
+  const activities: Activity[] = [
+    {
+      id: 'act_1',
+      title: '文明创建：社区垃圾分类宣传与分类督导',
+      location: '幸福小区1-3期垃圾分类投放点',
+      date: '2026-08-08 08:30 - 10:30',
+      hours: 2.0,
+      pointsReward: 40,
+      maxSeats: 20,
+      signedCount: 0,
+      status: 'recruiting',
+      category: '环保卫士',
+      description: '在社区定时投放点引导居民正确分类投递垃圾，发放垃圾分类宣传手册，维持投放点干净整洁。',
+      organizer: '幸福社区党群服务中心',
+      createdAt: '2026-08-01',
+    },
+    {
+      id: 'act_2',
+      title: '温暖关爱：独居高龄老人关怀与卫生清扫',
+      location: '幸福社区高龄老人家中',
+      date: '2026-08-10 14:00 - 17:00',
+      hours: 3.0,
+      pointsReward: 60,
+      maxSeats: 10,
+      signedCount: 0,
+      status: 'recruiting',
+      category: '关爱邻里',
+      description: '深入社区独居老人家中，陪老人聊天谈心，帮忙清扫室内卫生、排查燃气水电安全隐患。',
+      organizer: '社区志愿者协会',
+      createdAt: '2026-08-02',
+    },
+    {
+      id: 'act_3',
+      title: '平安社区：楼道电动车违规停放与消防巡查',
+      location: '幸福社区各居民楼单元楼道',
+      date: '2026-08-06 19:00 - 21:30',
+      hours: 2.5,
+      pointsReward: 50,
+      maxSeats: 15,
+      signedCount: 0,
+      status: 'recruiting',
+      category: '平安社区',
+      description: '联合社区物业网格员巡查楼道违规飞线充电及违规停放电动车行为，引导居民安全用电停车。',
+      organizer: '社区网格治理办',
+      createdAt: '2026-08-03',
+    },
+    {
+      id: 'act_4',
+      title: '便民义集：社区便民免费理发与磨刀义诊',
+      location: '社区广场休闲凉亭',
+      date: '2026-08-20 09:00 - 12:00',
+      hours: 3.0,
+      pointsReward: 60,
+      maxSeats: 12,
+      signedCount: 0,
+      status: 'recruiting',
+      category: '便民服务',
+      description: '为辖区60岁以上老人提供免费理发、义诊量血压血糖服务，现场秩序维护与签到引导。',
+      organizer: '幸福社区新时代文明实践站',
+      createdAt: '2026-08-04',
+    },
+    {
+      id: 'act_5',
+      title: '书香社区：社区儿童阅览室图书整理归类',
+      location: '党群中心2楼书香图书室',
+      date: '2026-08-22 15:00 - 17:00',
+      hours: 2.0,
+      pointsReward: 40,
+      maxSeats: 8,
+      signedCount: 0,
+      status: 'recruiting',
+      category: '文明创建',
+      description: '协助整理归位儿童绘本与科普图书，修补破损书籍，保持阅览室书架美观有序。',
+      organizer: '社区青年先锋队',
+      createdAt: '2026-08-04',
+    },
+    {
+      id: 'act_6',
+      title: '绿色家园：微花园花草修剪与浇灌护绿',
+      location: '幸福社区中央景观公园',
+      date: '2026-08-25 08:00 - 09:30',
+      hours: 1.5,
+      pointsReward: 30,
+      maxSeats: 10,
+      signedCount: 0,
+      status: 'recruiting',
+      category: '环保卫士',
+      description: '对社区微花园绿植进行杂草清理、松土浇水，修剪残枝败叶，共筑绿色优美环境。',
+      organizer: '社区绿色环保社团',
+      createdAt: '2026-08-04',
+    },
+  ];
+
+  const gifts: Gift[] = [
+    {
+      id: 'gift_1',
+      name: '304不锈钢便携保温杯 (500ml)',
+      pointsCost: 150,
+      stock: 25,
+      category: '生活用品',
+      image: 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&q=80&w=400',
+      description: '食品级304不锈钢内胆，24小时长效保温，精美刻字，方便携行。',
+      status: 'on_sale',
+      createdAt: '2026-08-01',
+    },
+    {
+      id: 'gift_2',
+      name: '5kg优质东北大米兑换券',
+      pointsCost: 200,
+      stock: 15,
+      category: '粮油副食',
+      image: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&q=80&w=400',
+      description: '凭借核销二维码至社区合作超市可直接领取1袋5kg优质东北五常大米。',
+      status: 'on_sale',
+      createdAt: '2026-08-01',
+    },
+    {
+      id: 'gift_3',
+      name: '多功能洗洁精与洗手液清洁套装',
+      pointsCost: 80,
+      stock: 35,
+      category: '生活用品',
+      image: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&q=80&w=400',
+      description: '包含柑橘温和去油洗洁精1.2L + 抑菌洗手液500ml，居家清洁必备。',
+      status: 'on_sale',
+      createdAt: '2026-08-02',
+    },
+    {
+      id: 'gift_4',
+      name: '纯棉加厚运动吸汗毛巾 (2条装)',
+      pointsCost: 60,
+      stock: 40,
+      category: '生活用品',
+      image: 'https://images.unsplash.com/photo-1616627547584-bf28cee262db?auto=format&fit=crop&q=80&w=400',
+      description: '100%新疆长绒棉，吸水性强不掉毛，柔软舒适，志愿服务随身好物。',
+      status: 'on_sale',
+      createdAt: '2026-08-02',
+    },
+    {
+      id: 'gift_5',
+      name: '社区环保折叠帆布购物袋',
+      pointsCost: 30,
+      stock: 80,
+      category: '生活用品',
+      image: 'https://images.unsplash.com/photo-1597484661643-2f5fef640dd1?auto=format&fit=crop&q=80&w=400',
+      description: '防撕裂大容量，便携折叠口袋，倡导绿色减塑生活。',
+      status: 'on_sale',
+      createdAt: '2026-08-02',
+    },
+    {
+      id: 'gift_6',
+      name: '自动全晴雨两用黑胶遮阳伞',
+      pointsCost: 100,
+      stock: 20,
+      category: '便民卡券',
+      image: 'https://images.unsplash.com/photo-1534308983496-4fabb1a015ee?auto=format&fit=crop&q=80&w=400',
+      description: '一键自动开合，UPF50+防晒黑胶涂层，抗风伞骨，出行守护。',
+      status: 'on_sale',
+      createdAt: '2026-08-03',
+    },
+  ];
+
+  return {
+    users,
+    activities,
+    gifts,
+    registrations: [] as Registration[],
+    serviceRecords: [] as ServiceRecord[],
+    redemptions: [] as Redemption[],
+    pointsHistory: [] as PointsHistoryItem[],
+    issues: [] as CommunityIssue[],
+  };
+}
+
 // In-Memory Database Instance (Express + Mock MySQL Data Engine)
 class MockMySQLDatabase {
   private users: User[] = [];
@@ -558,9 +748,15 @@ class MockMySQLDatabase {
   private pointsHistory: PointsHistoryItem[] = [];
   private issues: CommunityIssue[] = [];
 
-  private dbFilePath = process.env.DATA_DIR 
-    ? path.join(process.env.DATA_DIR, 'mock_db.json') 
-    : path.join(process.cwd(), 'data', 'mock_db.json');
+  private envMode: 'production' | 'test' = (process.env.WECHAT_ENV_MODE === 'test' ? 'test' : 'production');
+  private wechatAppId: string = process.env.WECHAT_APPID || 'wx7fd578a4010d96c7';
+  private wechatAppSecret: string = process.env.WECHAT_APPSECRET || '21e32182e543571dda65c67e30d4f57c';
+
+  private getDbFilePath(mode?: 'production' | 'test'): string {
+    const targetMode = mode || this.envMode;
+    const baseDir = process.env.DATA_DIR || path.join(process.cwd(), 'data');
+    return path.join(baseDir, targetMode === 'production' ? 'prod_db.json' : 'test_db.json');
+  }
 
   constructor() {
     const loaded = this.loadFromFile();
@@ -569,16 +765,56 @@ class MockMySQLDatabase {
     }
   }
 
+  public getEnvMode(): 'production' | 'test' {
+    return this.envMode;
+  }
+
+  public setEnvMode(mode: 'production' | 'test') {
+    if (this.envMode === mode) return;
+    // Persist current mode's data first
+    this.saveToFile();
+    this.envMode = mode;
+    // Switch and load the new mode's dataset
+    const loaded = this.loadFromFile();
+    if (!loaded) {
+      this.seed(true);
+    }
+    console.log(`[MySQL Engine] Successfully switched environment to [${mode}]. Database loaded.`);
+  }
+
+  public getWechatConfig() {
+    return {
+      appid: this.wechatAppId,
+      hasSecret: Boolean(this.wechatAppSecret && this.wechatAppSecret.length > 5),
+      secretMasked: this.wechatAppSecret ? `${this.wechatAppSecret.slice(0, 4)}****${this.wechatAppSecret.slice(-4)}` : '',
+    };
+  }
+
+  public updateWechatConfig(appid?: string, secret?: string) {
+    if (appid && appid.trim()) this.wechatAppId = appid.trim();
+    if (secret && secret.trim()) this.wechatAppSecret = secret.trim();
+    this.saveToFile();
+  }
+
+  public getWechatSecret(): string {
+    return this.wechatAppSecret;
+  }
+
+  public getWechatAppId(): string {
+    return this.wechatAppId;
+  }
+
   public saveToFile() {
     try {
-      const dir = path.dirname(this.dbFilePath);
+      const filePath = this.getDbFilePath();
+      const dir = path.dirname(filePath);
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
       }
       // Atomic write to prevent partial file corruption on process termination
-      const tmpFilePath = `${this.dbFilePath}.${Date.now()}.${Math.random().toString(36).slice(2, 6)}.tmp`;
+      const tmpFilePath = `${filePath}.${Date.now()}.${Math.random().toString(36).slice(2, 6)}.tmp`;
       fs.writeFileSync(tmpFilePath, JSON.stringify(this.getAllData(), null, 2), 'utf8');
-      fs.renameSync(tmpFilePath, this.dbFilePath);
+      fs.renameSync(tmpFilePath, filePath);
     } catch (e) {
       console.warn('DB saveToFile error:', e);
     }
@@ -586,12 +822,22 @@ class MockMySQLDatabase {
 
   public loadFromFile(): boolean {
     try {
-      if (fs.existsSync(this.dbFilePath)) {
-        const content = fs.readFileSync(this.dbFilePath, 'utf8');
+      const filePath = this.getDbFilePath();
+      if (fs.existsSync(filePath)) {
+        const content = fs.readFileSync(filePath, 'utf8');
         if (!content || !content.trim()) return false;
         const data = JSON.parse(content);
         if (data && Array.isArray(data.users) && data.users.length > 0) {
-          this.users = data.users;
+          // If in production mode, sanitize: remove any legacy mock test personas that may have slipped in
+          if (this.envMode === 'production') {
+            this.users = (data.users || []).filter((u: User) => u.id !== 'user_1' && u.id !== 'user_2' && u.id !== 'user_3' && !u.openid?.startsWith('mock_'));
+            if (this.users.length === 0) {
+              const defProd = getProductionDefaultData();
+              this.users = defProd.users;
+            }
+          } else {
+            this.users = data.users;
+          }
           this.activities = data.activities || [];
           this.gifts = data.gifts || [];
           this.registrations = data.registrations || [];
@@ -599,7 +845,13 @@ class MockMySQLDatabase {
           this.redemptions = data.redemptions || [];
           this.pointsHistory = data.pointsHistory || [];
           this.issues = data.issues || [];
-          console.log('[MySQL Engine] Database loaded from local disk storage:', this.dbFilePath);
+          if (data.wechatAppId) {
+            this.wechatAppId = data.wechatAppId;
+          }
+          if (data.wechatAppSecret) {
+            this.wechatAppSecret = data.wechatAppSecret;
+          }
+          console.log('[MySQL Engine] Database loaded from local disk storage (mode: ' + this.envMode + '):', filePath);
           return true;
         }
       }
@@ -611,7 +863,7 @@ class MockMySQLDatabase {
 
   public seed(force: boolean = false) {
     if (!force && this.users.length > 0) return false;
-    const data = getDefaultData();
+    const data = this.envMode === 'production' ? getProductionDefaultData() : getDefaultData();
     this.users = data.users;
     this.activities = data.activities;
     this.gifts = data.gifts;
@@ -621,12 +873,15 @@ class MockMySQLDatabase {
     this.pointsHistory = data.pointsHistory;
     this.issues = data.issues;
     this.saveToFile();
-    console.log('[MySQL Engine] Database seeded successfully with initial community records.');
+    console.log(`[MySQL Engine] Database (${this.envMode}) seeded successfully with initial community records.`);
     return true;
   }
 
   public getAllData() {
     return {
+      envMode: this.envMode,
+      wechatAppId: this.wechatAppId,
+      wechatAppSecret: this.wechatAppSecret,
       users: this.users,
       activities: this.activities,
       gifts: this.gifts,
@@ -1114,14 +1369,66 @@ async function startServer() {
     res.json({ success: true, seeded, data: db.getAllData() });
   });
 
+  // System Environment & Mode Management API (Production Real WeChat vs Test Mock)
+  app.get('/api/system/env-mode', (req, res) => {
+    const host = req.get('host') || 'localhost:3000';
+    const tcbOpenid = (req.headers['x-wx-openid'] || req.headers['X-WX-OPENID']) as string | undefined;
+    const envMode = db.getEnvMode();
+    res.json({
+      success: true,
+      envMode,
+      isProduction: envMode === 'production',
+      wechatConfig: db.getWechatConfig(),
+      isTcbGateway: Boolean(tcbOpenid),
+      currentHost: host,
+    });
+  });
+
+  app.post('/api/system/env-mode', (req, res) => {
+    const { envMode, wechatAppId, wechatAppSecret } = req.body;
+    if (envMode === 'production' || envMode === 'test') {
+      db.setEnvMode(envMode);
+    }
+    if (wechatAppId || wechatAppSecret) {
+      db.updateWechatConfig(wechatAppId, wechatAppSecret);
+    }
+    const host = req.get('host') || 'localhost:3000';
+    const tcbOpenid = (req.headers['x-wx-openid'] || req.headers['X-WX-OPENID']) as string | undefined;
+    const currentMode = db.getEnvMode();
+    res.json({
+      success: true,
+      envMode: currentMode,
+      isProduction: currentMode === 'production',
+      wechatConfig: db.getWechatConfig(),
+      isTcbGateway: Boolean(tcbOpenid),
+      currentHost: host,
+      message: `系统环境模式已成功切换为：【${currentMode === 'production' ? '真实微信生产模式 (Production)' : '模拟测试演练模式 (Test)'}】`
+    });
+  });
+
   // Tencent CloudBase (微信云托管) Native Gateway Automatic Authorization
-  app.get('/api/wechat/tcb-auto-auth', (req, res) => {
+  app.get('/api/wechat/tcb-auto-auth', async (req, res) => {
     const tcbOpenid = (req.headers['x-wx-openid'] || req.headers['X-WX-OPENID']) as string | undefined;
     const tcbUnionid = (req.headers['x-wx-unionid'] || req.headers['X-WX-UNIONID']) as string | undefined;
     const tcbAppid = (req.headers['x-wx-appid'] || req.headers['X-WX-APPID']) as string | undefined;
 
     if (tcbOpenid) {
-      const { user, isNew } = db.createOrGetWechatUser(tcbOpenid);
+      let realNickname: string | undefined;
+      let realAvatar: string | undefined;
+
+      // In Tencent CloudBase container, call internal WeChat open API directly without secret/access_token
+      try {
+        const tcbUserRes = await fetch(`http://api.weixin.qq.com/cgi-bin/user/info?openid=${tcbOpenid}&lang=zh_CN`);
+        const tcbUserInfo = await tcbUserRes.json();
+        if (tcbUserInfo && tcbUserInfo.nickname) {
+          realNickname = tcbUserInfo.nickname;
+          realAvatar = tcbUserInfo.headimgurl;
+        }
+      } catch (err) {
+        console.warn('[TCB Auto Auth] Internal WeChat userinfo call warning:', err);
+      }
+
+      const { user, isNew } = db.createOrGetWechatUser(tcbOpenid, realNickname, realAvatar);
       const token = `jwt_tcb_${user.id}_${Date.now()}`;
       return res.json({
         success: true,
@@ -1148,60 +1455,89 @@ async function startServer() {
     try {
       const { code, openid: directOpenid, customName, name, avatarUrl } = req.body;
       const tcbHeaderOpenid = (req.headers['x-wx-openid'] || req.headers['X-WX-OPENID']) as string | undefined;
-      const appid = process.env.WECHAT_APPID || 'wx7fd578a4010d96c7';
-      const secret = process.env.WECHAT_APPSECRET || '21e32182e543571dda65c67e30d4f57c';
-      const enableMock = process.env.ENABLE_WECHAT_MOCK === 'true';
+      const isProduction = db.getEnvMode() === 'production';
+      const appid = db.getWechatAppId();
+      const secret = db.getWechatSecret();
 
       let targetOpenid = directOpenid || tcbHeaderOpenid;
       let wechatNickname: string | undefined = customName || name;
       let wechatAvatar: string | undefined = avatarUrl;
 
-      if (!targetOpenid) {
-        if (enableMock || (code && code.startsWith('mock_'))) {
-          // Resolve mock codes
+      // In Production Mode: Disallow mock codes or fake openids
+      if (isProduction) {
+        if (targetOpenid && (targetOpenid.startsWith('mock_') || targetOpenid.startsWith('fake_'))) {
+          return res.status(400).json({
+            success: false,
+            message: '当前系统运行在【真实微信生产模式】，禁止使用测试模拟账号。请在微信客户端内进行真实授权，或在顶部切换为测试模式。'
+          });
+        }
+
+        if (!targetOpenid) {
+          if (!code || code.startsWith('mock_')) {
+            return res.status(400).json({
+              success: false,
+              message: '真实微信生产模式需要有效的微信官方授权 code 凭证。请在微信内置浏览器中打开或通过微信扫码完成授权。'
+            });
+          }
+
+          // Real WeChat OAuth2.0 code -> access_token & openid exchange
+          const wxUrl = `https://api.weixin.qq.com/sns/oauth2/access_token?appid=${appid}&secret=${secret}&code=${code}&grant_type=authorization_code`;
+          const wxResponse = await fetch(wxUrl);
+          const wxData = await wxResponse.json();
+
+          if (wxData.openid) {
+            targetOpenid = wxData.openid;
+
+            // Retrieve real WeChat user profile if access_token exists
+            if (wxData.access_token) {
+              try {
+                const userInfoUrl = `https://api.weixin.qq.com/sns/userinfo?access_token=${wxData.access_token}&openid=${wxData.openid}&lang=zh_CN`;
+                const userInfoRes = await fetch(userInfoUrl);
+                const userInfo = await userInfoRes.json();
+                if (userInfo.nickname) {
+                  wechatNickname = userInfo.nickname;
+                }
+                if (userInfo.headimgurl) {
+                  wechatAvatar = userInfo.headimgurl;
+                }
+              } catch (uErr) {
+                console.warn('[WeChat Auth] Real WeChat userinfo profile fetch warning:', uErr);
+              }
+            }
+          } else {
+            console.error('[WeChat Auth Error] Official WeChat API returned failure:', wxData);
+            let detailTip = wxData.errmsg || '微信接口认证失败';
+            if (wxData.errcode === 40164) {
+              detailTip += ' (微信公众号后台未配置IP白名单，请将服务器出口IP加入微信白名单)';
+            } else if (wxData.errcode === 40029) {
+              detailTip += ' (code 无效或已被使用，请重新在微信内发起授权)';
+            } else if (wxData.errcode === 40013) {
+              detailTip += ' (AppID 无效，请核对系统微信配置)';
+            } else if (wxData.errcode === 40125) {
+              detailTip += ' (AppSecret 无效，请核对微信公众号密钥)';
+            }
+            return res.status(400).json({
+              success: false,
+              errcode: wxData.errcode,
+              errmsg: wxData.errmsg,
+              message: `微信官方授权失败: [${wxData.errcode || '未知错误'}] ${detailTip}`,
+              isProduction: true
+            });
+          }
+        }
+      } else {
+        // Test / Mock Mode: Allow mock code translation or random fallback
+        if (!targetOpenid) {
           if (code === 'mock_code_user_1') targetOpenid = 'mock_openid_resident_001';
           else if (code === 'mock_code_user_2') targetOpenid = 'mock_openid_resident_002';
           else if (code === 'mock_code_admin') targetOpenid = 'mock_openid_admin_999';
           else if (code && code.length > 0) targetOpenid = 'mock_openid_wx_' + code;
-          else targetOpenid = `wx_openid_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
-        } else if (code) {
-          try {
-            // Real WeChat OAuth2.0 code -> access_token & openid exchange
-            const wxUrl = `https://api.weixin.qq.com/sns/oauth2/access_token?appid=${appid}&secret=${secret}&code=${code}&grant_type=authorization_code`;
-            const wxResponse = await fetch(wxUrl);
-            const wxData = await wxResponse.json();
-
-            if (wxData.openid) {
-              targetOpenid = wxData.openid;
-
-              // Retrieve real WeChat user profile if access_token exists
-              if (wxData.access_token) {
-                try {
-                  const userInfoUrl = `https://api.weixin.qq.com/sns/userinfo?access_token=${wxData.access_token}&openid=${wxData.openid}&lang=zh_CN`;
-                  const userInfoRes = await fetch(userInfoUrl);
-                  const userInfo = await userInfoRes.json();
-                  if (userInfo.nickname) {
-                    wechatNickname = userInfo.nickname;
-                  }
-                  if (userInfo.headimgurl) {
-                    wechatAvatar = userInfo.headimgurl;
-                  }
-                } catch (uErr) {
-                  console.warn('[WeChat Auth] Real WeChat userinfo profile fetch warning:', uErr);
-                }
-              }
-            } else {
-              console.warn('[WeChat Auth] Real WeChat API response:', wxData);
-              // Deterministic user openid for real WeChat redirect sessions
-              targetOpenid = `wx_user_${code.slice(0, 16)}`;
-            }
-          } catch (fetchErr) {
-            console.warn('[WeChat Auth] WeChat API fetch error, fallback to real code mapping:', fetchErr);
-            targetOpenid = `wx_user_${code.slice(0, 16)}`;
-          }
-        } else {
-          targetOpenid = `wx_openid_${Date.now().toString(36)}`;
+          else targetOpenid = `mock_openid_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
         }
+      }
+
+      if (!targetOpenid) {
+        return res.status(400).json({ success: false, message: '未能获取有效的用户 OpenID' });
       }
 
       const { user, isNew } = db.createOrGetWechatUser(targetOpenid, wechatNickname, wechatAvatar);
@@ -1213,9 +1549,10 @@ async function startServer() {
         user,
         isNew,
         openid: targetOpenid,
-        isMock: enableMock,
+        isMock: !isProduction,
+        envMode: isProduction ? 'production' : 'test',
         message: isNew 
-          ? `真实微信授权成功！已为您创建专属社区居民档案 [${user.name}]，初始积分为 0` 
+          ? `${isProduction ? '真实微信授权成功' : '测试授权成功'}！已为您建立社区居民档案 [${user.name}]` 
           : `微信登录成功！欢迎回来，【${user.name}】`,
       });
     } catch (err: any) {
@@ -1225,8 +1562,15 @@ async function startServer() {
   });
 
   app.post('/api/wechat/mock-login', (req, res) => {
+    if (db.getEnvMode() === 'production') {
+      return res.status(403).json({
+        success: false,
+        message: '当前系统运行在【真实微信生产模式】，已全局禁用模拟测试登录。如需演练，请在顶部导航栏切换至【模拟测试模式】。'
+      });
+    }
+
     const { openid, name, customName, avatarUrl } = req.body;
-    const targetOpenid = openid || `wx_openid_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+    const targetOpenid = openid || `mock_openid_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
     const nick = customName || name;
 
     const { user, isNew } = db.createOrGetWechatUser(targetOpenid, nick, avatarUrl);
@@ -1239,43 +1583,42 @@ async function startServer() {
       isNew,
       openid: targetOpenid,
       isMock: true,
+      envMode: 'test',
       message: isNew 
-        ? `微信授权成功！已绑定专属 OpenID 并创建居民账号(0分)` 
-        : `登录成功！欢迎回来，【${user.name}】`,
+        ? `[测试模式] 模拟微信授权成功！已绑定专属 OpenID 并创建居民账号` 
+        : `[测试模式] 登录成功！欢迎回来，【${user.name}】`,
     });
   });
 
   app.get(['/api/wechat/auth-url', '/api/wechat/oauth/url'], (req, res) => {
-    // WeChat authorized domain strictly configured in WeChat Official Account backend
-    const defaultAuthOrigin = 'https://jifen-295865-11-1301488547.sh.run.tcloudbase.com';
-    let rawUri = (req.query.redirect_uri as string) || (req.query.redirectUri as string) || process.env.APP_URL || defaultAuthOrigin;
+    const isProduction = db.getEnvMode() === 'production';
+    const appid = db.getWechatAppId();
     
-    // Clean redirectUri: strip query strings and hash parameters to comply with WeChat redirect_uri format
+    // Resolve dynamic request host and protocol
+    const host = req.get('host') || 'localhost:3000';
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+    const dynamicOrigin = `${protocol}://${host}`;
+
+    let rawUri = (req.query.redirect_uri as string) || (req.query.redirectUri as string) || dynamicOrigin;
     let redirectUri = rawUri.split('?')[0].split('#')[0];
-    
-    // Ensure the redirectUri matches the official domain configured in WeChat mp backend
-    try {
-      const parsed = new URL(redirectUri.startsWith('http') ? redirectUri : `${defaultAuthOrigin}${redirectUri.startsWith('/') ? '' : '/'}${redirectUri}`);
-      // If hostname doesn't match the configured official domain, force using the official domain
-      if (parsed.hostname.includes('tcloudbase.com') || parsed.hostname.includes('run.app') || parsed.hostname === 'localhost') {
-        redirectUri = `${defaultAuthOrigin}${parsed.pathname === '/' ? '/' : parsed.pathname}`;
-      }
-    } catch {
-      redirectUri = `${defaultAuthOrigin}/`;
+
+    // If client supplied relative path
+    if (redirectUri.startsWith('/')) {
+      redirectUri = `${dynamicOrigin}${redirectUri}`;
     }
 
-    const appid = process.env.WECHAT_APPID || 'wx7fd578a4010d96c7';
-    const enableMock = process.env.ENABLE_WECHAT_MOCK === 'true';
+    const forceReal = req.query.force_real === 'true';
 
-    if (enableMock) {
+    if (!isProduction && !forceReal) {
       const mockCode = `mock_code_${Date.now().toString(36)}`;
       const mockUrl = `${redirectUri}${redirectUri.includes('?') ? '&' : '?'}code=${mockCode}`;
-      res.json({ success: true, authUrl: mockUrl, isMock: true });
-    } else {
-      const authUrl = `https://open.weixin.qq.com/connect/oauth2/authorize?appid=${appid}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=snsapi_userinfo&state=STATE#wechat_redirect`;
-      res.json({ success: true, authUrl, isMock: false, redirectUri });
+      return res.json({ success: true, authUrl: mockUrl, isMock: true, envMode: 'test' });
     }
+
+    const authUrl = `https://open.weixin.qq.com/connect/oauth2/authorize?appid=${appid}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=snsapi_userinfo&state=STATE#wechat_redirect`;
+    res.json({ success: true, authUrl, isMock: false, redirectUri, envMode: isProduction ? 'production' : 'test' });
   });
+
 
   // WeChat QR Code Scan-to-Login (扫码登录) Ticket Session Storage
   interface ScanTicketSession {
@@ -1385,13 +1728,18 @@ async function startServer() {
       scanTickets.set(ticket, session);
     }
 
+    const isProduction = db.getEnvMode() === 'production';
+    if (isProduction && (userId === 'user_1' || userId === 'user_2' || userId === 'user_3' || (userId && userId.startsWith('mock_')) || (openid && openid.startsWith('mock_')))) {
+      return res.status(400).json({ success: false, message: '当前处于【真实微信生产模式】，已禁用模拟测试账号授权。请使用真实微信身份授权。' });
+    }
+
     let targetUser: User;
     if (userId) {
       const existing = db.getAllData().users.find(u => u.id === userId);
-      if (existing) {
+      if (existing && (!isProduction || (existing.id !== 'user_1' && existing.id !== 'user_2' && existing.id !== 'user_3' && !existing.openid?.startsWith('mock_')))) {
         targetUser = existing;
       } else {
-        const genOpenid = openid || `wx_scan_${Date.now().toString(36)}`;
+        const genOpenid = openid || `wx_real_${Date.now().toString(36)}`;
         const { user } = db.createOrGetWechatUser(genOpenid, name, avatarUrl);
         targetUser = user;
       }

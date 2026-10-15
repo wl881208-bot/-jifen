@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User } from '../types';
+import { User, SystemEnvMode } from '../types';
 import { QRCodeSVG } from 'qrcode.react';
 import { 
   X, 
@@ -32,6 +32,8 @@ interface LoginModalProps {
   onLoginSuccess: (user: User) => void;
   users: User[];
   defaultPrompt?: string;
+  currentEnvMode?: SystemEnvMode;
+  onOpenEnvSwitchModal?: () => void;
 }
 
 export const LoginModal: React.FC<LoginModalProps> = ({
@@ -39,7 +41,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   onClose,
   onLoginSuccess,
   users,
-  defaultPrompt
+  defaultPrompt,
+  currentEnvMode = 'production',
+  onOpenEnvSwitchModal,
 }) => {
   const [loginMethod, setLoginMethod] = useState<'wechat_direct' | 'phone' | 'quick_select' | 'wechat_scan'>('wechat_direct');
   
@@ -170,6 +174,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     setIsLoggingIn(true);
     setErrorMsg(null);
 
+    const isWechatBrowser = typeof navigator !== 'undefined' && /micromessenger/i.test(navigator.userAgent);
+    if (!isWechatBrowser && currentEnvMode === 'production') {
+      setIsLoggingIn(false);
+      setLoginMethod('wechat_scan');
+      setErrorMsg('检测到您当前未在手机微信内打开。在【真实微信生产模式】下，已为您切换为微信扫码登录，请使用手机微信扫码进行真实身份授权。');
+      return;
+    }
+
     try {
       const res = await wechatDirectAuth(customNameInput.trim() || undefined);
       setIsLoggingIn(false);
@@ -194,6 +206,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
   // 2. Mock Scan Confirmation
   const handleMockScanConfirm = async () => {
+    if (currentEnvMode === 'production') {
+      setErrorMsg('当前处于【真实微信生产模式】，已禁用模拟扫码确认。请使用手机微信扫一扫上方二维码进行真实授权。');
+      return;
+    }
     if (!scanTicket) return;
     setIsMockingScan(true);
     setErrorMsg(null);
@@ -273,7 +289,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     setErrorMsg(null);
 
     try {
-      const matchedUser = users.find(u => u.phone === phoneInput || u.phone === `${phoneInput.slice(0, 3)}****${phoneInput.slice(-4)}`);
+      const isTestPersona = (u: User) => u.id === 'user_1' || u.id === 'user_2' || u.id === 'user_3' || Boolean(u.openid?.startsWith('mock_'));
+      const matchedUser = users.find(u => 
+        (u.phone === phoneInput || u.phone === `${phoneInput.slice(0, 3)}****${phoneInput.slice(-4)}`) &&
+        (currentEnvMode === 'test' || !isTestPersona(u))
+      );
       
       if (matchedUser) {
         localStorage.setItem('logged_in_user_id', matchedUser.id);
@@ -351,42 +371,75 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           </div>
 
           {defaultPrompt && (
-            <div className="mt-3 bg-white/15 px-3 py-1.5 rounded-xl text-xs text-amber-200 flex items-center space-x-1.5 border border-white/20">
+            <div className="mt-2.5 bg-white/15 px-3 py-1.5 rounded-xl text-xs text-amber-200 flex items-center space-x-1.5 border border-white/20">
               <Sparkles className="w-3.5 h-3.5 shrink-0 text-amber-300" />
               <span>{defaultPrompt}</span>
             </div>
           )}
+
+          {/* Environment Status Badge */}
+          <div className="mt-2.5 flex items-center justify-between bg-black/25 px-3 py-1.5 rounded-xl text-xs border border-white/10">
+            <div className="flex items-center space-x-1.5">
+              <span className={`w-2 h-2 rounded-full ${currentEnvMode === 'production' ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+              <span className="font-semibold text-white">
+                {currentEnvMode === 'production' ? '当前：🟢 真实微信生产模式' : '当前：🟡 模拟测试演练模式'}
+              </span>
+            </div>
+            {onOpenEnvSwitchModal && (
+              <button
+                type="button"
+                onClick={() => { onClose(); onOpenEnvSwitchModal(); }}
+                className="text-amber-200 hover:text-white underline text-[11px] font-semibold cursor-pointer"
+              >
+                切换环境
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex border-b border-slate-100 bg-slate-50/70 text-xs font-semibold text-slate-500">
+        <div className="flex border-b border-slate-100 bg-slate-50/70 text-xs font-semibold text-slate-500 overflow-x-auto">
           <button
             onClick={() => { setLoginMethod('wechat_direct'); setErrorMsg(null); }}
-            className={`flex-1 py-3 text-center transition-colors flex items-center justify-center space-x-1 cursor-pointer ${
+            className={`flex-1 py-3 px-2 text-center transition-colors flex items-center justify-center space-x-1 cursor-pointer whitespace-nowrap ${
               loginMethod === 'wechat_direct' ? 'bg-white text-emerald-600 border-b-2 border-emerald-600 font-bold' : 'hover:text-slate-800'
             }`}
           >
             <Zap className="w-3.5 h-3.5 text-emerald-600" />
-            <span>微信一键授权</span>
+            <span>{currentEnvMode === 'production' ? '微信官方授权' : '模拟微信直登'}</span>
           </button>
+
+          <button
+            onClick={() => { setLoginMethod('wechat_scan'); setErrorMsg(null); }}
+            className={`flex-1 py-3 px-2 text-center transition-colors flex items-center justify-center space-x-1 cursor-pointer whitespace-nowrap ${
+              loginMethod === 'wechat_scan' ? 'bg-white text-emerald-600 border-b-2 border-emerald-600 font-bold' : 'hover:text-slate-800'
+            }`}
+          >
+            <QrCode className="w-3.5 h-3.5 text-emerald-600" />
+            <span>微信扫码登录</span>
+          </button>
+
           <button
             onClick={() => { setLoginMethod('phone'); setErrorMsg(null); }}
-            className={`flex-1 py-3 text-center transition-colors flex items-center justify-center space-x-1 cursor-pointer ${
+            className={`flex-1 py-3 px-2 text-center transition-colors flex items-center justify-center space-x-1 cursor-pointer whitespace-nowrap ${
               loginMethod === 'phone' ? 'bg-white text-blue-600 border-b-2 border-blue-600 font-bold' : 'hover:text-slate-800'
             }`}
           >
             <Smartphone className="w-3.5 h-3.5 text-blue-600" />
-            <span>手机号登录</span>
+            <span>手机登录</span>
           </button>
-          <button
-            onClick={() => { setLoginMethod('quick_select'); setErrorMsg(null); }}
-            className={`flex-1 py-3 text-center transition-colors flex items-center justify-center space-x-1 cursor-pointer ${
-              loginMethod === 'quick_select' ? 'bg-white text-amber-700 border-b-2 border-amber-600 font-bold' : 'hover:text-slate-800'
-            }`}
-          >
-            <Users className="w-3.5 h-3.5 text-amber-700" />
-            <span>体验账号</span>
-          </button>
+
+          {currentEnvMode === 'test' && (
+            <button
+              onClick={() => { setLoginMethod('quick_select'); setErrorMsg(null); }}
+              className={`flex-1 py-3 px-2 text-center transition-colors flex items-center justify-center space-x-1 cursor-pointer whitespace-nowrap ${
+                loginMethod === 'quick_select' ? 'bg-white text-amber-700 border-b-2 border-amber-600 font-bold' : 'hover:text-slate-800'
+              }`}
+            >
+              <Users className="w-3.5 h-3.5 text-amber-700" />
+              <span>体验账号</span>
+            </button>
+          )}
         </div>
 
         {/* Tab Contents */}
@@ -398,31 +451,41 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             </div>
           )}
 
-          {/* TAB 1: Direct WeChat 1-Click Auth (No QR Code requirement) */}
+          {/* TAB 1: Direct WeChat 1-Click Auth */}
           {loginMethod === 'wechat_direct' && (
             <div className="space-y-4 py-1">
               
               {/* Feature Highlights Card */}
-              <div className="bg-emerald-50/80 border border-emerald-200/80 rounded-2xl p-3.5 space-y-2.5 text-left">
+              <div className={`${currentEnvMode === 'production' ? 'bg-emerald-50/80 border-emerald-200/80' : 'bg-amber-50/80 border-amber-200/80'} border rounded-2xl p-3.5 space-y-2.5 text-left`}>
                 <div className="flex items-center space-x-2">
-                  <div className="p-1.5 bg-emerald-600 text-white rounded-xl shadow-xs">
+                  <div className={`p-1.5 ${currentEnvMode === 'production' ? 'bg-emerald-600' : 'bg-amber-600'} text-white rounded-xl shadow-xs`}>
                     <ShieldCheck className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-emerald-950 text-xs sm:text-sm">微信官方授权免密直登</h4>
-                    <p className="text-[11px] text-emerald-800/80">无需扫码等待，点击直接调用微信登录机制</p>
+                    <h4 className="font-bold text-slate-900 text-xs sm:text-sm">
+                      {currentEnvMode === 'production' ? '微信官方授权直登 (仅限微信客户端)' : '模拟微信免密直登 (测试模式)'}
+                    </h4>
+                    <p className="text-[11px] text-slate-600">
+                      {currentEnvMode === 'production' 
+                        ? '在微信内点击调起微信官方授权页，自动拉取真实微信头像与昵称'
+                        : '直接模拟生成虚拟测试 OpenID 进行业务演练'}
+                    </p>
                   </div>
                 </div>
 
-                <div className="text-[11px] text-emerald-900 space-y-1 pt-1 border-t border-emerald-200/50">
+                <div className="text-[11px] text-slate-700 space-y-1 pt-1 border-t border-slate-200/50">
                   <div className="flex items-center space-x-1.5">
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    <span>自动绑定微信专属 OpenID，安全保护居民隐私</span>
+                    <span>
+                      {currentEnvMode === 'production' ? '真实绑定微信官方 OpenID 与头像' : '模拟体验全流程积分与核销'}
+                    </span>
                   </div>
-                  <div className="flex items-center space-x-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    <span>秒级同步志愿服务工时档案与爱心积分</span>
-                  </div>
+                  {currentEnvMode === 'production' && (
+                    <div className="flex items-center space-x-1.5 text-amber-800 font-medium">
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                      <span>电脑端请切换到上方【微信扫码登录】标签使用手机微信扫码</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -663,16 +726,28 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
               {/* Primary Action Buttons */}
               <div className="pt-1 space-y-2">
-                <button
-                  type="button"
-                  onClick={handleMockScanConfirm}
-                  disabled={isMockingScan}
-                  className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center space-x-2 shadow-md shadow-emerald-600/20 cursor-pointer disabled:opacity-50"
-                  title="无需手机，直接极速模拟手机微信扫码授权完成"
-                >
-                  <Zap className="w-4 h-4 text-amber-300" />
-                  <span>{isMockingScan ? '正在模拟授权中...' : '⚡ 一键模拟手机扫码确认'}</span>
-                </button>
+                {currentEnvMode === 'production' ? (
+                  <div className="bg-emerald-50 border border-emerald-200/80 rounded-xl p-3 text-xs text-emerald-950 text-left space-y-1">
+                    <div className="flex items-center space-x-1.5 font-bold text-emerald-800">
+                      <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                      <span>真实微信扫码同步通道已建立</span>
+                    </div>
+                    <p className="text-[11px] text-emerald-900/80">
+                      请使用手机微信【扫一扫】扫描上方二维码，在手机端完成官方授权后，电脑端将自动实时载入您的真实微信居民档案。
+                    </p>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleMockScanConfirm}
+                    disabled={isMockingScan}
+                    className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center space-x-2 shadow-md shadow-emerald-600/20 cursor-pointer disabled:opacity-50"
+                    title="无需手机，直接极速模拟手机微信扫码授权完成"
+                  >
+                    <Zap className="w-4 h-4 text-amber-300" />
+                    <span>{isMockingScan ? '正在模拟授权中...' : '⚡ 一键模拟手机扫码确认 (测试演练)'}</span>
+                  </button>
+                )}
 
                 <div className="flex items-center justify-between text-[11px] text-slate-500 px-1 pt-1">
                   <button

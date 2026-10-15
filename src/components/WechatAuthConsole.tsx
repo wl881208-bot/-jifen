@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, WechatLoginResponse } from '../types';
+import { User, WechatLoginResponse, SystemEnvMode } from '../types';
 import { wechatMockLogin, getWechatAuthUrl } from '../lib/dataService';
 import { QRCodeSVG } from 'qrcode.react';
 import { getPublicAppUrl } from '../lib/appConfig';
@@ -17,19 +17,24 @@ import {
   X,
   Copy,
   ExternalLink,
-  Globe
+  Globe,
+  Settings2
 } from 'lucide-react';
 
 interface WechatAuthConsoleProps {
   currentUser: User;
   onUserChange: (user: User) => void;
   onShowMessage: (msg: string, type?: 'success' | 'error' | 'info') => void;
+  currentEnvMode?: SystemEnvMode;
+  onOpenEnvSwitchModal?: () => void;
 }
 
 export const WechatAuthConsole: React.FC<WechatAuthConsoleProps> = ({
   currentUser,
   onUserChange,
   onShowMessage,
+  currentEnvMode = 'production',
+  onOpenEnvSwitchModal,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
@@ -50,6 +55,10 @@ export const WechatAuthConsole: React.FC<WechatAuthConsoleProps> = ({
   const isWechatBrowser = typeof navigator !== 'undefined' && /MicroMessenger/i.test(navigator.userAgent);
 
   const handleSwitchOpenId = async (openid: string, name?: string) => {
+    if (currentEnvMode === 'production') {
+      onShowMessage('当前处于真实生产模式，禁止模拟切换 OpenID。请切换至测试模式。', 'error');
+      return;
+    }
     setLoading(true);
     try {
       const res: WechatLoginResponse = await wechatMockLogin(openid, name);
@@ -67,8 +76,12 @@ export const WechatAuthConsole: React.FC<WechatAuthConsoleProps> = ({
   };
 
   const handleSimulateNewUser = async () => {
+    if (currentEnvMode === 'production') {
+      onShowMessage('当前处于【真实微信生产模式】，无法生成模拟用户。可在右上角切换为【测试模式】进行演练。', 'info');
+      return;
+    }
     const randId = Math.floor(1000 + Math.random() * 9000);
-    const newOpenId = `wx_openid_${Date.now().toString(36)}_${randId}`;
+    const newOpenId = `mock_openid_${Date.now().toString(36)}_${randId}`;
     await handleSwitchOpenId(newOpenId, `新居民_${randId}`);
   };
 
@@ -77,40 +90,43 @@ export const WechatAuthConsole: React.FC<WechatAuthConsoleProps> = ({
     try {
       const authRes = await getWechatAuthUrl(window.location.href);
       if (authRes.authUrl) {
-        onShowMessage(`[模拟微信静默跳转] 重定向至: ${authRes.authUrl.slice(0, 45)}...`, 'info');
-        const randId = Math.floor(1000 + Math.random() * 9000);
-        setTimeout(() => {
-          handleSwitchOpenId(`wx_auth_${Date.now().toString(36)}`, `微信居民_${randId}`);
-        }, 800);
+        onShowMessage(`[微信授权跳转] 重定向至微信官方授权页`, 'info');
+        window.location.href = authRes.authUrl;
       }
     } catch (err) {
-      onShowMessage('静默授权链接生成失败', 'error');
+      onShowMessage('授权链接生成失败', 'error');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="bg-emerald-800 text-white border-b border-emerald-700/60 shadow-inner">
+    <div className={`${currentEnvMode === 'production' ? 'bg-emerald-900 border-emerald-800' : 'bg-slate-800 border-slate-700'} text-white border-b shadow-inner transition-colors`}>
       <div className="max-w-7xl mx-auto px-4 py-2 flex flex-wrap items-center justify-between text-xs gap-2">
         
             {/* Environment & OpenID Status */}
             <div className="flex items-center space-x-2 flex-wrap">
-              <span className="bg-emerald-900/80 text-emerald-200 border border-emerald-600/50 px-2 py-0.5 rounded-full font-medium flex items-center space-x-1">
-                <Smartphone className="w-3 h-3 text-emerald-300" />
-                <span>{isWechatBrowser ? '真实微信 H5 授权模式 (snsapi_userinfo)' : '真实微信登录模式 (Mock已关闭)'}</span>
-              </span>
+              <button
+                type="button"
+                onClick={onOpenEnvSwitchModal}
+                className="bg-black/30 hover:bg-black/40 text-white border border-white/20 px-2 py-0.5 rounded-full font-bold flex items-center space-x-1 cursor-pointer transition-colors"
+                title="点击切换生产/测试环境"
+              >
+                <span className={`w-2 h-2 rounded-full ${currentEnvMode === 'production' ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+                <span>{currentEnvMode === 'production' ? '🟢 真实微信生产模式' : '🟡 模拟测试演练模式'}</span>
+                <span className="text-[10px] text-amber-200 underline ml-0.5">切换</span>
+              </button>
 
-              <div className="flex items-center space-x-1 bg-black/20 px-2.5 py-0.5 rounded-md border border-emerald-500/30">
+              <div className="flex items-center space-x-1 bg-black/20 px-2.5 py-0.5 rounded-md border border-white/10">
                 <Key className="w-3 h-3 text-amber-300" />
                 <span className="text-emerald-100 font-mono">OpenID:</span>
                 <span className="font-semibold text-amber-200 font-mono truncate max-w-[150px] sm:max-w-none">
-                  {currentUser.openid || '真实微信账号认证中'}
+                  {currentUser.openid || (currentEnvMode === 'production' ? '微信官方待认证' : '未绑定')}
                 </span>
               </div>
 
               <span className="hidden md:inline-block text-emerald-200/80">
-                当前居民: <strong className="text-white">{currentUser.name}</strong> ({currentUser.points} 积分)
+                当前档案: <strong className="text-white">{currentUser.name}</strong> ({currentUser.points} 积分)
               </span>
             </div>
 
@@ -118,26 +134,28 @@ export const WechatAuthConsole: React.FC<WechatAuthConsoleProps> = ({
         <div className="flex items-center space-x-2">
           <button
             onClick={() => setShowQrModal(true)}
-            className="bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold px-2.5 py-1 rounded-md transition-all flex items-center space-x-1 shadow-xs active:scale-95"
+            className="bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold px-2.5 py-1 rounded-md transition-all flex items-center space-x-1 shadow-xs active:scale-95 cursor-pointer"
             title="微信扫码体验应用"
           >
             <QrCode className="w-3.5 h-3.5 text-slate-950" />
             <span>📱 手机扫码体验</span>
           </button>
 
-          <button
-            onClick={handleSimulateNewUser}
-            disabled={loading}
-            className="bg-emerald-700 hover:bg-emerald-600 text-emerald-100 font-medium px-2.5 py-1 rounded-md transition-all flex items-center space-x-1 border border-emerald-500/50"
-            title="一键模拟新微信用户进入（0积分）"
-          >
-            <UserPlus className="w-3.5 h-3.5" />
-            <span>+ 模拟新用户</span>
-          </button>
+          {currentEnvMode === 'test' && (
+            <button
+              onClick={handleSimulateNewUser}
+              disabled={loading}
+              className="bg-emerald-700 hover:bg-emerald-600 text-emerald-100 font-medium px-2.5 py-1 rounded-md transition-all flex items-center space-x-1 border border-emerald-500/50 cursor-pointer"
+              title="一键模拟新微信用户进入（0积分）"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              <span>+ 模拟新用户</span>
+            </button>
+          )}
 
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="bg-emerald-700 hover:bg-emerald-600 text-emerald-100 px-2.5 py-1 rounded-md border border-emerald-500/50 transition-colors flex items-center space-x-1"
+            className="bg-black/20 hover:bg-black/30 text-white px-2.5 py-1 rounded-md border border-white/20 transition-colors flex items-center space-x-1 cursor-pointer"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             <span>测试控制台</span>

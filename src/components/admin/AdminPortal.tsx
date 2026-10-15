@@ -7,7 +7,8 @@ import {
   ServiceRecord, 
   Redemption, 
   PointsHistoryItem,
-  UserRole
+  UserRole,
+  SystemEnvMode
 } from '../../types';
 import { AdminTab } from '../BottomNav';
 import { ActivityManage } from './ActivityManage';
@@ -77,6 +78,8 @@ interface AdminPortalProps {
     handledBy?: string
   ) => Promise<{ success: boolean; message?: string }>;
   onDeleteIssue: (id: string) => Promise<{ success: boolean; message?: string }>;
+  currentEnvMode?: SystemEnvMode;
+  onOpenEnvSwitchModal?: () => void;
 }
 
 export const AdminPortal: React.FC<AdminPortalProps> = ({
@@ -110,6 +113,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   onAdjustPoints,
   onHandleIssue,
   onDeleteIssue,
+  currentEnvMode = 'production',
+  onOpenEnvSwitchModal,
 }) => {
   // Login form state
   const [adminPhone, setAdminPhone] = useState('');
@@ -373,6 +378,21 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
               >
                 <RotateCcw className={`w-3.5 h-3.5 ${isResetting ? 'animate-spin' : ''}`} />
                 <span>{isResetting ? '重置中...' : '重置演示数据'}</span>
+              </button>
+
+              {/* Environment Mode Switcher */}
+              <button
+                type="button"
+                onClick={onOpenEnvSwitchModal}
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                  currentEnvMode === 'production'
+                    ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/60 hover:bg-emerald-900'
+                    : 'bg-amber-950/80 text-amber-300 border-amber-500/60 hover:bg-amber-900'
+                }`}
+                title="切换系统运行环境与微信认证模式"
+              >
+                <span className={`w-2 h-2 rounded-full shrink-0 ${currentEnvMode === 'production' ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+                <span>{currentEnvMode === 'production' ? '🟢 真实微信环境' : '🟡 测试演练环境'}</span>
               </button>
 
               {/* View / Switch to H5 Resident View */}

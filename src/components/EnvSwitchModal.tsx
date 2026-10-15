@@ -36,6 +36,7 @@ export const EnvSwitchModal: React.FC<EnvSwitchModalProps> = ({
   const [showConfigEdit, setShowConfigEdit] = useState(false);
   const [appIdInput, setAppIdInput] = useState('');
   const [secretInput, setSecretInput] = useState('');
+  const [oauthDomainInput, setOauthDomainInput] = useState('');
 
   useEffect(() => {
     if (isOpen) {
@@ -47,6 +48,7 @@ export const EnvSwitchModal: React.FC<EnvSwitchModalProps> = ({
     const info = await getSystemEnvInfo();
     setEnvInfo(info);
     if (info.wechatAppId) setAppIdInput(info.wechatAppId);
+    if (info.oauthDomain) setOauthDomainInput(info.oauthDomain);
   };
 
   if (!isOpen) return null;
@@ -73,9 +75,14 @@ export const EnvSwitchModal: React.FC<EnvSwitchModalProps> = ({
   const handleSaveWechatConfig = async () => {
     setLoading(true);
     try {
-      const res = await switchSystemEnvMode(currentMode, appIdInput.trim() || undefined, secretInput.trim() || undefined);
+      const res = await switchSystemEnvMode(
+        currentMode, 
+        appIdInput.trim() || undefined, 
+        secretInput.trim() || undefined,
+        oauthDomainInput.trim() || undefined
+      );
       if (res.success) {
-        onShowMessage('微信公众号参数更新成功！', 'success');
+        onShowMessage('微信公众号参数及网页授权域名更新成功！', 'success');
         setShowConfigEdit(false);
         setSecretInput('');
         await loadInfo();
@@ -278,13 +285,29 @@ export const EnvSwitchModal: React.FC<EnvSwitchModalProps> = ({
                     className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-mono focus:ring-1 focus:ring-blue-500 focus:outline-hidden"
                   />
                 </div>
+                <div>
+                  <div className="flex items-center justify-between mb-0.5">
+                    <label className="text-[11px] font-semibold text-slate-600">微信网页授权域名 (对应错误码 10003)</label>
+                    <span className="text-[10px] text-emerald-600 font-medium">必须与微信公众平台后台一致</span>
+                  </div>
+                  <input
+                    type="text"
+                    value={oauthDomainInput}
+                    onChange={(e) => setOauthDomainInput(e.target.value)}
+                    placeholder="如: jifen-295865-11-1301488547.sh.run.tcloudbase.com"
+                    className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-mono focus:ring-1 focus:ring-blue-500 focus:outline-hidden"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    在微信公众平台【设置与开发】👉【公众号设置】👉【功能设置】👉【网页授权域名】中填写的域名。
+                  </p>
+                </div>
                 <button
                   type="button"
                   onClick={handleSaveWechatConfig}
                   disabled={loading}
                   className="w-full py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-xs cursor-pointer transition-colors"
                 >
-                  保存参数配置
+                  保存参数与授权域名
                 </button>
               </div>
             )}

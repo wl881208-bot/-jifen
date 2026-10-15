@@ -1001,6 +1001,7 @@ export async function getSystemEnvInfo(): Promise<SystemEnvInfo> {
       isProduction: data.isProduction ?? (data.envMode === 'production'),
       wechatAppId: data.wechatConfig?.appid || '',
       hasAppSecret: Boolean(data.wechatConfig?.hasSecret),
+      oauthDomain: data.wechatConfig?.oauthDomain || 'jifen-295865-11-1301488547.sh.run.tcloudbase.com',
       isTcbGateway: Boolean(data.isTcbGateway),
       currentHost: data.currentHost,
     };
@@ -1009,8 +1010,9 @@ export async function getSystemEnvInfo(): Promise<SystemEnvInfo> {
     return cachedEnvInfo || {
       envMode: 'production',
       isProduction: true,
-      wechatAppId: 'wx7fd578a4010d96c7',
+      wechatAppId: 'wx8b069e2f10f2e2da',
       hasAppSecret: true,
+      oauthDomain: 'jifen-295865-11-1301488547.sh.run.tcloudbase.com',
       isTcbGateway: false,
     };
   }
@@ -1019,13 +1021,14 @@ export async function getSystemEnvInfo(): Promise<SystemEnvInfo> {
 export async function switchSystemEnvMode(
   newMode: SystemEnvMode, 
   wechatAppId?: string, 
-  wechatAppSecret?: string
+  wechatAppSecret?: string,
+  wechatOAuthDomain?: string
 ): Promise<{ success: boolean; message: string; envInfo?: SystemEnvInfo }> {
   try {
     const res = await fetch('/api/system/env-mode', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ envMode: newMode, wechatAppId, wechatAppSecret }),
+      body: JSON.stringify({ envMode: newMode, wechatAppId, wechatAppSecret, wechatOAuthDomain }),
     });
     const data = await res.json();
     if (data.success) {
@@ -1034,6 +1037,7 @@ export async function switchSystemEnvMode(
         isProduction: data.isProduction,
         wechatAppId: data.wechatConfig?.appid,
         hasAppSecret: data.wechatConfig?.hasSecret,
+        oauthDomain: data.wechatConfig?.oauthDomain || 'jifen-295865-11-1301488547.sh.run.tcloudbase.com',
         isTcbGateway: data.isTcbGateway,
         currentHost: data.currentHost,
       };
@@ -1058,7 +1062,8 @@ export async function wechatDirectAuth(customName?: string): Promise<WechatLogin
     // In WeChat Browser: Directly launch official WeChat OAuth2.0
     if (isWechatBrowser) {
       const cleanUri = window.location.href.split('?')[0];
-      const authUrlRes = await fetch(`/api/wechat/auth-url?redirect_uri=${encodeURIComponent(cleanUri)}`);
+      const origin = window.location.origin;
+      const authUrlRes = await fetch(`/api/wechat/auth-url?redirect_uri=${encodeURIComponent(cleanUri)}&origin=${encodeURIComponent(origin)}`);
       const data = await authUrlRes.json();
       if (data.success && data.authUrl) {
         window.location.href = data.authUrl;
@@ -1131,18 +1136,22 @@ export async function checkTcbAutoAuth(): Promise<{ success: boolean; hasTcbHead
   }
 }
 
-export async function getWechatAuthUrl(redirectUri: string, scope: string = 'snsapi_userinfo', state: string = 'STATE'): Promise<{ success: boolean; authUrl: string; appId: string }> {
+export async function getWechatAuthUrl(redirectUri?: string, scope: string = 'snsapi_userinfo', state: string = 'STATE'): Promise<{ success: boolean; authUrl: string; appId: string }> {
   try {
-    const res = await fetch(`/api/wechat/oauth/url?redirectUri=${encodeURIComponent(redirectUri)}&scope=${scope}&state=${state}`);
+    const origin = (typeof window !== 'undefined' && window.location.origin) ? window.location.origin : '';
+    const cleanUri = redirectUri || (typeof window !== 'undefined' ? window.location.href.split('?')[0] : '');
+    const res = await fetch(`/api/wechat/oauth/url?redirectUri=${encodeURIComponent(cleanUri)}&origin=${encodeURIComponent(origin)}&scope=${scope}&state=${encodeURIComponent(state)}`);
     const data = await res.json();
     return data;
   } catch (e) {
-    const appId = 'wx7fd578a4010d96c7';
-    const encodedUri = encodeURIComponent(redirectUri);
+    const appId = cachedEnvInfo?.wechatAppId || 'wx8b069e2f10f2e2da';
+    const domain = cachedEnvInfo?.oauthDomain || 'jifen-295865-11-1301488547.sh.run.tcloudbase.com';
+    const targetUri = `https://${domain}/`;
+    const encodedUri = encodeURIComponent(targetUri);
     return {
       success: true,
       appId,
-      authUrl: `https://open.weixin.qq.com/connect/oauth2/authorize?appid=${appId}&redirect_uri=${encodedUri}&response_type=code&scope=${scope}&state=${state}#wechat_redirect`
+      authUrl: `https://open.weixin.qq.com/connect/oauth2/authorize?appid=${appId}&redirect_uri=${encodedUri}&response_type=code&scope=${scope}&state=${encodeURIComponent(state)}#wechat_redirect`
     };
   }
 }

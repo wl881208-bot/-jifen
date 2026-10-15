@@ -280,16 +280,16 @@ export const WechatAuthConsole: React.FC<WechatAuthConsoleProps> = ({
               </div>
             </div>
 
-            {/* WeChat Error 10011 Troubleshooting & Domain Config Help */}
+            {/* WeChat Error 10003 Troubleshooting & Domain Config Help */}
             <div className="bg-amber-950/70 border border-amber-500/50 p-3 rounded-xl text-amber-100 text-xs space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-1.5 font-bold text-amber-300">
                   <Info className="w-4 h-4 text-amber-400 shrink-0" />
-                  <span>遇到微信“错误码 10011（redirect_uri 域名与后台配置不一致）”？</span>
+                  <span>遇到微信“错误码 10003（redirect_uri 域名与后台配置不一致）”？</span>
                 </div>
                 <button
                   onClick={handleCopyLink}
-                  className="bg-amber-400 text-slate-950 px-2.5 py-1 rounded-md text-[11px] font-bold hover:bg-amber-300 transition-colors flex items-center space-x-1 shrink-0"
+                  className="bg-amber-400 text-slate-950 px-2.5 py-1 rounded-md text-[11px] font-bold hover:bg-amber-300 transition-colors flex items-center space-x-1 shrink-0 cursor-pointer"
                 >
                   <Copy className="w-3 h-3" />
                   <span>{copied ? '已复制域名' : '复制授权域名'}</span>
@@ -297,13 +297,13 @@ export const WechatAuthConsole: React.FC<WechatAuthConsoleProps> = ({
               </div>
 
               <div className="text-[11px] text-amber-200/90 leading-relaxed space-y-1">
-                <p><strong>错误原因：</strong>微信公众号 <code className="bg-black/40 px-1 py-0.5 rounded text-amber-300">wx7fd578a4010d96c7</code> 的后台尚未将本系统域名配置为【网页授权域名】。</p>
-                <p><strong>解决步骤（仅需 1 分钟）：</strong></p>
+                <p><strong>错误原因：</strong>微信公众号后台配置的【网页授权域名】与发起授权的实际域名不匹配。本系统已固定使用微信公众平台所配置的正式授权域名：<code className="bg-black/50 px-1.5 py-0.5 rounded text-amber-300 font-mono">jifen-295865-11-1301488547.sh.run.tcloudbase.com</code>。</p>
+                <p><strong>验证排查指南：</strong></p>
                 <ol className="list-decimal list-inside space-y-0.5 pl-1 text-amber-100">
                   <li>登录 <a href="https://mp.weixin.qq.com" target="_blank" rel="noreferrer" className="underline font-semibold text-amber-300">微信公众平台 (mp.weixin.qq.com)</a></li>
                   <li>进入 <b>【设置与开发】👉【公众号设置】👉【功能设置】👉【网页授权域名】</b></li>
-                  <li>点击设置，在域名栏填入：<code className="bg-black/50 px-1.5 py-0.5 rounded text-amber-300 font-mono">jifen-295865-11-1301488547.sh.run.tcloudbase.com</code></li>
-                  <li>如微信提示校验 <code className="bg-black/40 px-1 py-0.5 rounded text-amber-300">MP_verify_xxx.txt</code> 文件，本服务端已全自动原生拦截适配，直接点击“确认/保存”即可成功配置！</li>
+                  <li>确认填入的域名为：<code className="bg-black/50 px-1.5 py-0.5 rounded text-amber-300 font-mono">jifen-295865-11-1301488547.sh.run.tcloudbase.com</code>（无需填写 http:// 或路径）</li>
+                  <li>如微信提示校验 <code className="bg-black/40 px-1 py-0.5 rounded text-amber-300">MP_verify_xxx.txt</code> 文件，系统已自动拦截解析响应，直接点击确认即可通过校验！</li>
                 </ol>
               </div>
             </div>

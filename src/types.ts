@@ -175,5 +175,7 @@ export interface SystemEnvInfo {
   hasAppSecret: boolean;
   isTcbGateway: boolean;
   currentHost?: string;
+  oauthDomain?: string;
 }
+
 

@@ -188,6 +188,7 @@ export default function App() {
       // Check WeChat OAuth code in URL (if arriving from WeChat OAuth redirect)
       const urlParams = new URLSearchParams(window.location.search);
       const codeFromUrl = urlParams.get('code');
+      const stateFromUrl = urlParams.get('state');
       const scanTicketFromUrl = urlParams.get('scan_ticket');
       const isWeChatBrowser = typeof navigator !== 'undefined' && /MicroMessenger/i.test(navigator.userAgent);
 
@@ -198,6 +199,20 @@ export default function App() {
       }
 
       if (codeFromUrl) {
+        // If state encodes a return origin from another preview/dev environment, bounce back with code
+        if (stateFromUrl) {
+          try {
+            const decodedState = decodeURIComponent(stateFromUrl);
+            if (decodedState.startsWith('http') && !decodedState.includes(window.location.host)) {
+              const returnUrl = `${decodedState}${decodedState.includes('?') ? '&' : '?'}code=${encodeURIComponent(codeFromUrl)}`;
+              window.location.href = returnUrl;
+              return;
+            }
+          } catch {
+            // continue normal flow
+          }
+        }
+
         showToast('微信官方授权认证中，正在载入居民档案...', 'info');
         try {
           const wxRes = await wechatLogin(codeFromUrl);

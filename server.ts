@@ -749,8 +749,9 @@ class MockMySQLDatabase {
   private issues: CommunityIssue[] = [];
 
   private envMode: 'production' | 'test' = (process.env.WECHAT_ENV_MODE === 'test' ? 'test' : 'production');
-  private wechatAppId: string = process.env.WECHAT_APPID || 'wx7fd578a4010d96c7';
+  private wechatAppId: string = process.env.WECHAT_APPID || 'wx8b069e2f10f2e2da';
   private wechatAppSecret: string = process.env.WECHAT_APPSECRET || '21e32182e543571dda65c67e30d4f57c';
+  private wechatOAuthDomain: string = process.env.WECHAT_OAUTH_DOMAIN || 'jifen-295865-11-1301488547.sh.run.tcloudbase.com';
 
   private getDbFilePath(mode?: 'production' | 'test'): string {
     const targetMode = mode || this.envMode;
@@ -787,13 +788,22 @@ class MockMySQLDatabase {
       appid: this.wechatAppId,
       hasSecret: Boolean(this.wechatAppSecret && this.wechatAppSecret.length > 5),
       secretMasked: this.wechatAppSecret ? `${this.wechatAppSecret.slice(0, 4)}****${this.wechatAppSecret.slice(-4)}` : '',
+      oauthDomain: this.wechatOAuthDomain,
     };
   }
 
-  public updateWechatConfig(appid?: string, secret?: string) {
+  public updateWechatConfig(appid?: string, secret?: string, oauthDomain?: string) {
     if (appid && appid.trim()) this.wechatAppId = appid.trim();
     if (secret && secret.trim()) this.wechatAppSecret = secret.trim();
+    if (oauthDomain && oauthDomain.trim()) {
+      let clean = oauthDomain.trim().replace(/^https?:\/\//i, '').split('/')[0].split('?')[0];
+      if (clean) this.wechatOAuthDomain = clean;
+    }
     this.saveToFile();
+  }
+
+  public getWechatOAuthDomain(): string {
+    return this.wechatOAuthDomain;
   }
 
   public getWechatSecret(): string {
@@ -851,6 +861,9 @@ class MockMySQLDatabase {
           if (data.wechatAppSecret) {
             this.wechatAppSecret = data.wechatAppSecret;
           }
+          if (data.wechatOAuthDomain) {
+            this.wechatOAuthDomain = data.wechatOAuthDomain;
+          }
           console.log('[MySQL Engine] Database loaded from local disk storage (mode: ' + this.envMode + '):', filePath);
           return true;
         }
@@ -882,6 +895,7 @@ class MockMySQLDatabase {
       envMode: this.envMode,
       wechatAppId: this.wechatAppId,
       wechatAppSecret: this.wechatAppSecret,
+      wechatOAuthDomain: this.wechatOAuthDomain,
       users: this.users,
       activities: this.activities,
       gifts: this.gifts,
@@ -1342,6 +1356,7 @@ const db = new MockMySQLDatabase();
 
 async function startServer() {
   const app = express();
+  app.set('trust proxy', 1);
   const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 8080;
 
   app.use(express.json({ limit: '50mb' }));
@@ -1385,12 +1400,12 @@ async function startServer() {
   });
 
   app.post('/api/system/env-mode', (req, res) => {
-    const { envMode, wechatAppId, wechatAppSecret } = req.body;
+    const { envMode, wechatAppId, wechatAppSecret, wechatOAuthDomain } = req.body;
     if (envMode === 'production' || envMode === 'test') {
       db.setEnvMode(envMode);
     }
-    if (wechatAppId || wechatAppSecret) {
-      db.updateWechatConfig(wechatAppId, wechatAppSecret);
+    if (wechatAppId || wechatAppSecret || wechatOAuthDomain) {
+      db.updateWechatConfig(wechatAppId, wechatAppSecret, wechatOAuthDomain);
     }
     const host = req.get('host') || 'localhost:3000';
     const tcbOpenid = (req.headers['x-wx-openid'] || req.headers['X-WX-OPENID']) as string | undefined;
@@ -1593,10 +1608,14 @@ async function startServer() {
   app.get(['/api/wechat/auth-url', '/api/wechat/oauth/url'], (req, res) => {
     const isProduction = db.getEnvMode() === 'production';
     const appid = db.getWechatAppId();
+    const authorizedDomain = db.getWechatOAuthDomain();
     
     // Resolve dynamic request host and protocol
     const host = req.get('host') || 'localhost:3000';
-    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+    const forwardedProto = req.headers['x-forwarded-proto'];
+    const protocol = Array.isArray(forwardedProto) 
+      ? forwardedProto[0] 
+      : (typeof forwardedProto === 'string' ? forwardedProto.split(',')[0].trim() : (req.protocol || 'https'));
     const dynamicOrigin = `${protocol}://${host}`;
 
     let rawUri = (req.query.redirect_uri as string) || (req.query.redirectUri as string) || dynamicOrigin;
@@ -1615,8 +1634,40 @@ async function startServer() {
       return res.json({ success: true, authUrl: mockUrl, isMock: true, envMode: 'test' });
     }
 
-    const authUrl = `https://open.weixin.qq.com/connect/oauth2/authorize?appid=${appid}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=snsapi_userinfo&state=STATE#wechat_redirect`;
-    res.json({ success: true, authUrl, isMock: false, redirectUri, envMode: isProduction ? 'production' : 'test' });
+    // WeChat 10003 Prevention:
+    // In real WeChat OAuth2, the redirect_uri's host MUST strictly match the domain authorized
+    // in the WeChat Official Account backend (网页授权域名).
+    // Ensure the redirectUri uses the official authorizedDomain:
+    let finalRedirectUri = `https://${authorizedDomain}/`;
+    try {
+      if (redirectUri.startsWith('http')) {
+        const parsed = new URL(redirectUri);
+        const pathname = parsed.pathname || '/';
+        finalRedirectUri = `https://${authorizedDomain}${pathname}`;
+      }
+    } catch {
+      finalRedirectUri = `https://${authorizedDomain}/`;
+    }
+
+    // Pass return origin in state parameter if client origin differs from authorizedDomain
+    const clientOrigin = (req.query.origin as string) || dynamicOrigin;
+    let state = 'STATE';
+    if (clientOrigin && !clientOrigin.includes(authorizedDomain)) {
+      state = encodeURIComponent(clientOrigin);
+    }
+    if (req.query.state && typeof req.query.state === 'string' && req.query.state !== 'STATE') {
+      state = encodeURIComponent(req.query.state as string);
+    }
+
+    const authUrl = `https://open.weixin.qq.com/connect/oauth2/authorize?appid=${appid}&redirect_uri=${encodeURIComponent(finalRedirectUri)}&response_type=code&scope=snsapi_userinfo&state=${state}#wechat_redirect`;
+    res.json({
+      success: true,
+      authUrl,
+      isMock: false,
+      redirectUri: finalRedirectUri,
+      authorizedDomain,
+      envMode: isProduction ? 'production' : 'test'
+    });
   });
 
 
@@ -1800,8 +1851,8 @@ async function startServer() {
     try {
       const { js_code, code } = req.body;
       const targetCode = js_code || code;
-      const appid = process.env.WECHAT_APPID || 'wx7fd578a4010d96c7';
-      const secret = process.env.WECHAT_APPSECRET || '21e32182e543571dda65c67e30d4f57c';
+      const appid = db.getWechatAppId();
+      const secret = db.getWechatSecret();
       const enableMock = process.env.ENABLE_WECHAT_MOCK === 'true';
 
       let openid: string | null = null;
@@ -1882,8 +1933,9 @@ async function startServer() {
 
   // Exportable Uniapp / Taro / Native Mini-Program Source Code Generator Endpoint
   app.get('/api/wechat/miniprogram/export-source', (req, res) => {
-    const appid = process.env.WECHAT_APPID || 'wx7fd578a4010d96c7';
-    const baseUrl = process.env.APP_URL || 'https://jifen-295865-11-1301488547.sh.run.tcloudbase.com';
+    const appid = db.getWechatAppId();
+    const domain = db.getWechatOAuthDomain();
+    const baseUrl = process.env.APP_URL || `https://${domain}`;
 
     const sourceFiles = [
       // 1. Project Config

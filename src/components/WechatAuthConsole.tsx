@@ -85,12 +85,12 @@ export const WechatAuthConsole: React.FC<WechatAuthConsoleProps> = ({
     await handleSwitchOpenId(newOpenId, `新居民_${randId}`);
   };
 
-  const handleSimulateWechatAuthRedirect = async () => {
+  const handleSimulateWechatAuthRedirect = async (scope: string = 'snsapi_userinfo') => {
     setLoading(true);
     try {
-      const authRes = await getWechatAuthUrl(window.location.href);
+      const authRes = await getWechatAuthUrl(window.location.href, scope);
       if (authRes.authUrl) {
-        onShowMessage(`[微信授权跳转] 重定向至微信官方授权页`, 'info');
+        onShowMessage(`[微信授权跳转] 重定向至微信官方授权页 (${scope})`, 'info');
         window.location.href = authRes.authUrl;
       }
     } catch (err) {
@@ -337,11 +337,21 @@ export const WechatAuthConsole: React.FC<WechatAuthConsoleProps> = ({
               </div>
 
               <button
-                onClick={handleSimulateWechatAuthRedirect}
-                className="bg-emerald-800 hover:bg-emerald-700 text-emerald-200 border border-emerald-600 px-3 py-1 rounded transition-colors flex items-center space-x-1"
+                onClick={() => handleSimulateWechatAuthRedirect('snsapi_userinfo')}
+                className="bg-emerald-800 hover:bg-emerald-700 text-emerald-200 border border-emerald-600 px-2.5 py-1 rounded transition-colors flex items-center space-x-1 cursor-pointer"
+                title="服务号全量授权（获取昵称与头像）"
               >
                 <ChevronRight className="w-3.5 h-3.5" />
-                <span>触发完整的 snsapi_base 重定向</span>
+                <span>服务号全量授权 (userinfo)</span>
+              </button>
+
+              <button
+                onClick={() => handleSimulateWechatAuthRedirect('snsapi_base')}
+                className="bg-blue-900/80 hover:bg-blue-800 text-blue-200 border border-blue-600 px-2.5 py-1 rounded transition-colors flex items-center space-x-1 cursor-pointer"
+                title="静默获取 OpenID（免确认，兼容未认证公众号）"
+              >
+                <ChevronRight className="w-3.5 h-3.5" />
+                <span>静默兼容授权 (base)</span>
               </button>
             </div>
 

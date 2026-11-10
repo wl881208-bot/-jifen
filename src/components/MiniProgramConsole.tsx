@@ -51,7 +51,7 @@ export const MiniProgramConsole: React.FC<MiniProgramConsoleProps> = ({
   const [isZipping, setIsZipping] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'native' | 'webview' | 'doc'>('all');
 
-  const appid = 'wx8b069e2f10f2e2da';
+  const appid = sourceData?.appid || 'wx7fd578a4010d96c7';
 
   useEffect(() => {
     fetchSourceCode();

@@ -749,8 +749,8 @@ class MockMySQLDatabase {
   private issues: CommunityIssue[] = [];
 
   private envMode: 'production' | 'test' = (process.env.WECHAT_ENV_MODE === 'test' ? 'test' : 'production');
-  private wechatAppId: string = process.env.WECHAT_APPID || 'wx8b069e2f10f2e2da';
-  private wechatAppSecret: string = process.env.WECHAT_APPSECRET || '21e32182e543571dda65c67e30d4f57c';
+  private wechatAppId: string = process.env.WECHAT_APPID || 'wx7fd578a4010d96c7';
+  private wechatAppSecret: string = process.env.WECHAT_APPSECRET || 'e70915ee5cf402daa609bfe78537e52a';
   private wechatOAuthDomain: string = process.env.WECHAT_OAUTH_DOMAIN || 'jifen-295865-11-1301488547.sh.run.tcloudbase.com';
 
   private getDbFilePath(mode?: 'production' | 'test'): string {
@@ -1608,7 +1608,8 @@ async function startServer() {
   app.get(['/api/wechat/auth-url', '/api/wechat/oauth/url'], (req, res) => {
     const isProduction = db.getEnvMode() === 'production';
     const appid = db.getWechatAppId();
-    const authorizedDomain = db.getWechatOAuthDomain();
+    const rawAuthorizedDomain = db.getWechatOAuthDomain();
+    const cleanAuthorizedDomain = rawAuthorizedDomain.trim().replace(/^https?:\/\//i, '').replace(/\/.*$/, '');
     
     // Resolve dynamic request host and protocol
     const host = req.get('host') || 'localhost:3000';
@@ -1635,38 +1636,102 @@ async function startServer() {
     }
 
     // WeChat 10003 Prevention:
-    // In real WeChat OAuth2, the redirect_uri's host MUST strictly match the domain authorized
+    // In real WeChat OAuth2, the redirect_uri host MUST strictly match the domain authorized
     // in the WeChat Official Account backend (网页授权域名).
-    // Ensure the redirectUri uses the official authorizedDomain:
-    let finalRedirectUri = `https://${authorizedDomain}/`;
+    let pathname = '/';
     try {
       if (redirectUri.startsWith('http')) {
         const parsed = new URL(redirectUri);
-        const pathname = parsed.pathname || '/';
-        finalRedirectUri = `https://${authorizedDomain}${pathname}`;
+        pathname = parsed.pathname || '/';
       }
     } catch {
-      finalRedirectUri = `https://${authorizedDomain}/`;
+      pathname = '/';
     }
+
+    // Clean canonical redirect URI
+    const finalRedirectUri = `https://${cleanAuthorizedDomain}${pathname}`;
 
     // Pass return origin in state parameter if client origin differs from authorizedDomain
     const clientOrigin = (req.query.origin as string) || dynamicOrigin;
     let state = 'STATE';
-    if (clientOrigin && !clientOrigin.includes(authorizedDomain)) {
+    if (clientOrigin && !clientOrigin.includes(cleanAuthorizedDomain)) {
       state = encodeURIComponent(clientOrigin);
     }
     if (req.query.state && typeof req.query.state === 'string' && req.query.state !== 'STATE') {
       state = encodeURIComponent(req.query.state as string);
     }
 
-    const authUrl = `https://open.weixin.qq.com/connect/oauth2/authorize?appid=${appid}&redirect_uri=${encodeURIComponent(finalRedirectUri)}&response_type=code&scope=snsapi_userinfo&state=${state}#wechat_redirect`;
+    // Support scope selection: snsapi_userinfo (default) or snsapi_base (silent openid)
+    const scopeParam = (req.query.scope as string) || 'snsapi_userinfo';
+    const scope = (scopeParam === 'snsapi_base') ? 'snsapi_base' : 'snsapi_userinfo';
+
+    const authUrl = `https://open.weixin.qq.com/connect/oauth2/authorize?appid=${appid}&redirect_uri=${encodeURIComponent(finalRedirectUri)}&response_type=code&scope=${scope}&state=${state}#wechat_redirect`;
     res.json({
       success: true,
       authUrl,
       isMock: false,
       redirectUri: finalRedirectUri,
-      authorizedDomain,
+      authorizedDomain: cleanAuthorizedDomain,
+      scope,
+      appid,
       envMode: isProduction ? 'production' : 'test'
+    });
+  });
+
+  // Diagnostic Endpoint for WeChat OAuth 10003 Error
+  app.get('/api/wechat/diagnose', (req, res) => {
+    const isProduction = db.getEnvMode() === 'production';
+    const appid = db.getWechatAppId();
+    const rawAuthorizedDomain = db.getWechatOAuthDomain();
+    const cleanAuthorizedDomain = rawAuthorizedDomain.trim().replace(/^https?:\/\//i, '').replace(/\/.*$/, '');
+    const currentHost = req.get('host') || 'unknown';
+    const hasSecret = Boolean(db.getWechatSecret() && db.getWechatSecret().length > 5);
+
+    const redirectUri = `https://${cleanAuthorizedDomain}/`;
+    const authUrlUserInfo = `https://open.weixin.qq.com/connect/oauth2/authorize?appid=${appid}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=snsapi_userinfo&state=STATE#wechat_redirect`;
+    const authUrlBase = `https://open.weixin.qq.com/connect/oauth2/authorize?appid=${appid}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=snsapi_base&state=STATE#wechat_redirect`;
+
+    const isDomainMatch = currentHost.toLowerCase() === cleanAuthorizedDomain.toLowerCase();
+
+    res.json({
+      success: true,
+      isProduction,
+      appid,
+      hasSecret,
+      authorizedDomain: cleanAuthorizedDomain,
+      currentHost,
+      isDomainMatch,
+      redirectUri,
+      authUrlUserInfo,
+      authUrlBase,
+      troubleshooting: {
+        code: 10003,
+        errorName: 'redirect_uri域名与后台配置不一致',
+        checklist: [
+          {
+            step: 1,
+            title: '公众号后台【网页授权域名】配置路径',
+            desc: '登录 mp.weixin.qq.com -> 【设置与开发】 -> 【公众号设置】 -> 【功能设置】 -> 第3项【网页授权域名】。（切勿填到“JS接口安全域名”或“业务域名”！）',
+            requiredDomain: cleanAuthorizedDomain
+          },
+          {
+            step: 2,
+            title: '公众号 AppID 归属校验',
+            desc: `确认您在微信公众平台配置域名的账号，其开发者 AppID 确实为 【${appid}】。`,
+            currentAppId: appid
+          },
+          {
+            step: 3,
+            title: '公众号类型与授权权限检查',
+            desc: 'snsapi_userinfo（获取昵称头像）仅微信认证服务号支持。若未认证或为订阅号，请使用 snsapi_base 静默授权模式或手机号快捷登录。'
+          },
+          {
+            step: 4,
+            title: 'MP_verify_*.txt 域名所有权文件校验',
+            desc: '保存微信网页授权域名时，系统已自动内置动态响应校验文件，无需手动放置。'
+          }
+        ]
+      }
     });
   });
 
@@ -3607,16 +3672,19 @@ Page({
 
 
   // Support WeChat MP Domain Verification file MP_verify_*.txt
-  app.get('/MP_verify_:code.txt', (req, res) => {
+  app.get(['/MP_verify_:code.txt', '/:code(MP_verify_[a-zA-Z0-9_-]+).txt', '/MP_verify_:code'], (req, res) => {
     const code = req.params.code;
-    res.type('text/plain').send(code);
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Content-Disposition', `inline; filename="MP_verify_${code}.txt"`);
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.status(200).send(code);
   });
 
   // WeChat JSDK Config Route for Custom Card Sharing
   app.get('/api/wechat/jssdk-config', (req, res) => {
     const host = req.get('host') || 'localhost:3000';
     const currentUrl = (req.query.url as string) || process.env.APP_URL || `${req.protocol}://${host}`;
-    const appid = process.env.WECHAT_APPID || 'wx_mock_appid';
+    const appid = db.getWechatAppId() || process.env.WECHAT_APPID || 'wx7fd578a4010d96c7';
     const timestamp = Math.floor(Date.now() / 1000);
     const nonceStr = Math.random().toString(36).substring(2, 15);
     const signature = 'mock_jssdk_signature_' + timestamp + '_' + nonceStr;
@@ -3627,7 +3695,7 @@ Page({
       timestamp,
       nonceStr,
       signature,
-      isMock: process.env.ENABLE_WECHAT_MOCK !== 'false' || !process.env.WECHAT_APPID,
+      isMock: db.getEnvMode() !== 'production',
       defaultShare: {
         title: '【社区志愿招募】社区志愿积分与礼品兑换服务大厅',
         desc: '参与社区公益服务获得爱心积分，大米粮油、生活用品免费兑换！',

@@ -190,7 +190,20 @@ export default function App() {
       const codeFromUrl = urlParams.get('code');
       const stateFromUrl = urlParams.get('state');
       const scanTicketFromUrl = urlParams.get('scan_ticket');
+      const errCodeFromUrl = urlParams.get('errcode') || urlParams.get('error_code');
+      const errMsgFromUrl = urlParams.get('errmsg') || urlParams.get('error');
       const isWeChatBrowser = typeof navigator !== 'undefined' && /MicroMessenger/i.test(navigator.userAgent);
+
+      if (errCodeFromUrl || errMsgFromUrl) {
+        if (errCodeFromUrl === '10003' || String(errMsgFromUrl).includes('10003')) {
+          showToast('微信返回错误码 10003：redirect_uri 域名与公众号后台不一致。已为您打开排查助手，也可点击使用手机号登录。', 'error');
+          setIsLoginModalOpen(true);
+        } else {
+          showToast(`微信授权返回: [${errCodeFromUrl || '异常'}] ${errMsgFromUrl || ''}`, 'error');
+        }
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+      }
 
       if (scanTicketFromUrl) {
         setMobileScanTicket(scanTicketFromUrl);

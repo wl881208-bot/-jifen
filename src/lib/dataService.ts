@@ -13,7 +13,8 @@ import {
   WechatLoginResponse,
   IssueStatus,
   SystemEnvMode,
-  SystemEnvInfo
+  SystemEnvInfo,
+  WechatDiagnosticInfo
 } from '../types';
 import { getPublicAppUrl } from './appConfig';
 
@@ -1010,7 +1011,7 @@ export async function getSystemEnvInfo(): Promise<SystemEnvInfo> {
     return cachedEnvInfo || {
       envMode: 'production',
       isProduction: true,
-      wechatAppId: 'wx8b069e2f10f2e2da',
+      wechatAppId: 'wx7fd578a4010d96c7',
       hasAppSecret: true,
       oauthDomain: 'jifen-295865-11-1301488547.sh.run.tcloudbase.com',
       isTcbGateway: false,
@@ -1055,15 +1056,32 @@ export async function switchSystemEnvMode(
 }
 
 // WeChat Login & Integration Handlers
-export async function wechatDirectAuth(customName?: string): Promise<WechatLoginResponse> {
+export async function wechatDirectAuth(customName?: string, preferScope: string = 'snsapi_userinfo'): Promise<WechatLoginResponse> {
   try {
     const isWechatBrowser = typeof navigator !== 'undefined' && /micromessenger/i.test(navigator.userAgent);
     
-    // In WeChat Browser: Directly launch official WeChat OAuth2.0
+    // In WeChat Browser:
     if (isWechatBrowser) {
+      // 1. Try Tencent CloudBase native header zero-auth first (instant login if within TCB)
+      try {
+        const tcbCheck = await checkTcbAutoAuth();
+        if (tcbCheck.success && tcbCheck.user) {
+          return {
+            success: true,
+            user: tcbCheck.user,
+            openid: tcbCheck.openid,
+            token: tcbCheck.token,
+            message: `微信云托管身份直连识别成功！欢迎回来，【${tcbCheck.user.name}】`
+          };
+        }
+      } catch (tcbErr) {
+        console.warn('TCB auto auth check skipped:', tcbErr);
+      }
+
+      // 2. Launch official WeChat OAuth2.0
       const cleanUri = window.location.href.split('?')[0];
       const origin = window.location.origin;
-      const authUrlRes = await fetch(`/api/wechat/auth-url?redirect_uri=${encodeURIComponent(cleanUri)}&origin=${encodeURIComponent(origin)}`);
+      const authUrlRes = await fetch(`/api/wechat/auth-url?redirect_uri=${encodeURIComponent(cleanUri)}&origin=${encodeURIComponent(origin)}&scope=${preferScope}`);
       const data = await authUrlRes.json();
       if (data.success && data.authUrl) {
         window.location.href = data.authUrl;
@@ -1144,7 +1162,7 @@ export async function getWechatAuthUrl(redirectUri?: string, scope: string = 'sn
     const data = await res.json();
     return data;
   } catch (e) {
-    const appId = cachedEnvInfo?.wechatAppId || 'wx8b069e2f10f2e2da';
+    const appId = cachedEnvInfo?.wechatAppId || 'wx7fd578a4010d96c7';
     const domain = cachedEnvInfo?.oauthDomain || 'jifen-295865-11-1301488547.sh.run.tcloudbase.com';
     const targetUri = `https://${domain}/`;
     const encodedUri = encodeURIComponent(targetUri);
@@ -1153,6 +1171,17 @@ export async function getWechatAuthUrl(redirectUri?: string, scope: string = 'sn
       appId,
       authUrl: `https://open.weixin.qq.com/connect/oauth2/authorize?appid=${appId}&redirect_uri=${encodedUri}&response_type=code&scope=${scope}&state=${encodeURIComponent(state)}#wechat_redirect`
     };
+  }
+}
+
+// WeChat Diagnostic API client helper
+export async function getWechatDiagnostic(): Promise<WechatDiagnosticInfo | null> {
+  try {
+    const res = await fetch('/api/wechat/diagnose');
+    return await res.json();
+  } catch (err) {
+    console.warn('Diagnostic fetch error:', err);
+    return null;
   }
 }
 

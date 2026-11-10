@@ -178,4 +178,30 @@ export interface SystemEnvInfo {
   oauthDomain?: string;
 }
 
+export interface WechatDiagnosticChecklistItem {
+  step: number;
+  title: string;
+  desc: string;
+  requiredDomain?: string;
+  currentAppId?: string;
+}
+
+export interface WechatDiagnosticInfo {
+  success: boolean;
+  isProduction: boolean;
+  appid: string;
+  hasSecret: boolean;
+  authorizedDomain: string;
+  currentHost: string;
+  isDomainMatch: boolean;
+  redirectUri: string;
+  authUrlUserInfo: string;
+  authUrlBase: string;
+  troubleshooting?: {
+    code: number;
+    errorName: string;
+    checklist: WechatDiagnosticChecklistItem[];
+  };
+}
+
 

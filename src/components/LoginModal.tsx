@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, SystemEnvMode } from '../types';
+import { User, SystemEnvMode, WechatDiagnosticInfo } from '../types';
 import { QRCodeSVG } from 'qrcode.react';
 import { 
   X, 
@@ -13,7 +13,14 @@ import {
   RefreshCw,
   Zap,
   Settings,
-  AlertTriangle
+  AlertTriangle,
+  Info,
+  Copy,
+  ExternalLink,
+  ChevronDown,
+  ChevronUp,
+  HelpCircle,
+  Check
 } from 'lucide-react';
 import { 
   createUser, 
@@ -22,7 +29,9 @@ import {
   checkScanStatus, 
   mockConfirmScanLogin,
   wechatMockLogin,
-  wechatDirectAuth
+  wechatDirectAuth,
+  getWechatDiagnostic,
+  checkTcbAutoAuth
 } from '../lib/dataService';
 import { getPublicAppUrl } from '../lib/appConfig';
 
@@ -65,6 +74,39 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const [countdown, setCountdown] = useState(0);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // WeChat Scope & 10003 Diagnostic State
+  const [selectedScope, setSelectedScope] = useState<'snsapi_userinfo' | 'snsapi_base'>('snsapi_userinfo');
+  const [show10003Helper, setShow10003Helper] = useState(false);
+  const [diagnosticData, setDiagnosticData] = useState<WechatDiagnosticInfo | null>(null);
+  const [copiedItem, setCopiedItem] = useState<string | null>(null);
+  const [loadingDiagnostic, setLoadingDiagnostic] = useState(false);
+
+  const fetchDiagnostic = async () => {
+    setLoadingDiagnostic(true);
+    try {
+      const data = await getWechatDiagnostic();
+      if (data) setDiagnosticData(data);
+    } catch (e) {
+      console.warn('Failed to fetch diagnostic data:', e);
+    } finally {
+      setLoadingDiagnostic(false);
+    }
+  };
+
+  const handleCopy = (text: string, label: string) => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+      setCopiedItem(label);
+      setTimeout(() => setCopiedItem(null), 2000);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen && (show10003Helper || !diagnosticData)) {
+      fetchDiagnostic();
+    }
+  }, [isOpen, show10003Helper]);
 
   const pollTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -175,15 +217,31 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     setErrorMsg(null);
 
     const isWechatBrowser = typeof navigator !== 'undefined' && /micromessenger/i.test(navigator.userAgent);
+    
+    // First, check Tencent CloudBase native header zero-auth if available (instant login with zero redirect)
+    try {
+      const tcbRes = await checkTcbAutoAuth();
+      if (tcbRes.success && tcbRes.user) {
+        setIsLoggingIn(false);
+        localStorage.setItem('wechat_openid', tcbRes.user.openid || `wx_${tcbRes.user.id}`);
+        localStorage.setItem('logged_in_user_id', tcbRes.user.id);
+        onLoginSuccess(tcbRes.user);
+        onClose();
+        return;
+      }
+    } catch {
+      // non-blocking
+    }
+
     if (!isWechatBrowser && currentEnvMode === 'production') {
       setIsLoggingIn(false);
       setLoginMethod('wechat_scan');
-      setErrorMsg('检测到您当前未在手机微信内打开。在【真实微信生产模式】下，已为您切换为微信扫码登录，请使用手机微信扫码进行真实身份授权。');
+      setErrorMsg('检测到您当前未在手机微信内打开。在【真实微信生产模式】下，已为您切换为微信扫码登录，请使用手机微信扫码进行真实身份授权；或点击下方【手机短信登录】快捷体验。');
       return;
     }
 
     try {
-      const res = await wechatDirectAuth(customNameInput.trim() || undefined);
+      const res = await wechatDirectAuth(customNameInput.trim() || undefined, selectedScope);
       setIsLoggingIn(false);
 
       if (res.success && res.user) {
@@ -503,6 +561,48 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 />
               </div>
 
+              {/* WeChat Authorization Scope Option */}
+              {currentEnvMode === 'production' && (
+                <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-2.5 text-xs space-y-1.5">
+                  <div className="flex items-center justify-between text-slate-700 font-semibold">
+                    <span>微信授权模式选择：</span>
+                    <span className="text-[10px] text-slate-400">适配不同公众号类型</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedScope('snsapi_userinfo')}
+                      className={`px-2.5 py-1.5 rounded-lg border text-left text-[11px] transition-all cursor-pointer ${
+                        selectedScope === 'snsapi_userinfo'
+                          ? 'border-emerald-500 bg-emerald-50 text-emerald-800 font-bold shadow-xs'
+                          : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        <span>标准授权 (全量)</span>
+                      </div>
+                      <div className="text-[10px] text-slate-400 font-normal mt-0.5">拉取真实昵称与头像 (需认证服务号)</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedScope('snsapi_base')}
+                      className={`px-2.5 py-1.5 rounded-lg border text-left text-[11px] transition-all cursor-pointer ${
+                        selectedScope === 'snsapi_base'
+                          ? 'border-emerald-500 bg-emerald-50 text-emerald-800 font-bold shadow-xs'
+                          : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                        <span>静默授权 (兼容)</span>
+                      </div>
+                      <div className="text-[10px] text-slate-400 font-normal mt-0.5">仅获取OpenID (免点确认/兼容性最高)</div>
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Primary 1-Click WeChat Direct Action Button */}
               <button
                 type="button"
@@ -524,6 +624,122 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   </>
                 )}
               </button>
+
+              {/* WeChat OAuth Error 10003 Troubleshooting & Diagnostic Assistant */}
+              <div className="border border-amber-200/90 bg-amber-50/60 rounded-2xl overflow-hidden transition-all text-xs">
+                <button
+                  type="button"
+                  onClick={() => setShow10003Helper(!show10003Helper)}
+                  className="w-full px-3.5 py-2.5 flex items-center justify-between text-amber-900 font-bold hover:bg-amber-100/60 transition-colors cursor-pointer text-left"
+                >
+                  <div className="flex items-center space-x-1.5">
+                    <Info className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span className="text-[11px] sm:text-xs">遇到微信“错误码 10003”？点击一键自检与排查</span>
+                  </div>
+                  {show10003Helper ? (
+                    <ChevronUp className="w-4 h-4 text-amber-700 shrink-0" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-amber-700 shrink-0" />
+                  )}
+                </button>
+
+                {show10003Helper && (
+                  <div className="p-3.5 pt-1 space-y-3 border-t border-amber-200/80 text-slate-700 text-[11px] leading-relaxed bg-white/80">
+                    <div className="bg-amber-100/70 p-2.5 rounded-xl text-amber-950 space-y-1">
+                      <div className="font-bold flex items-center space-x-1">
+                        <span>⚠️ 为什么会出现 10003（redirect_uri域名与后台配置不一致）？</span>
+                      </div>
+                      <p className="text-[11px] text-amber-900/90">
+                        发起微信网页授权时，微信服务器会严格核对发起请求的域名是否在当前公众号后台登记的【网页授权域名】中，且必须是微信认证服务号。
+                      </p>
+                    </div>
+
+                    {/* Live Config Values & One-Click Copy */}
+                    <div className="space-y-2">
+                      <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-slate-700">1. 后端正在使用的微信 AppID：</span>
+                          <button
+                            type="button"
+                            onClick={() => handleCopy(diagnosticData?.appid || 'wx7fd578a4010d96c7', 'appid')}
+                            className="text-emerald-700 hover:text-emerald-800 font-bold text-[10px] flex items-center space-x-0.5 cursor-pointer"
+                          >
+                            {copiedItem === 'appid' ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                            <span>{copiedItem === 'appid' ? '已复制' : '复制 AppID'}</span>
+                          </button>
+                        </div>
+                        <div className="font-mono text-[11px] bg-white p-1.5 rounded border border-slate-200 text-slate-900 select-all">
+                          {diagnosticData?.appid || 'wx7fd578a4010d96c7'}
+                        </div>
+                        <p className="text-[10px] text-slate-500">
+                          请务必确认：您在微信公众平台配置域名的账号，其开发者 AppID 确实为上方这串 ID！如果使用了小程序 AppID 或订阅号则无法进行网页授权。
+                        </p>
+                      </div>
+
+                      <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-slate-700">2. 微信后台必须填写的【网页授权域名】：</span>
+                          <button
+                            type="button"
+                            onClick={() => handleCopy(diagnosticData?.authorizedDomain || 'jifen-295865-11-1301488547.sh.run.tcloudbase.com', 'domain')}
+                            className="text-emerald-700 hover:text-emerald-800 font-bold text-[10px] flex items-center space-x-0.5 cursor-pointer"
+                          >
+                            {copiedItem === 'domain' ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                            <span>{copiedItem === 'domain' ? '已复制' : '复制域名'}</span>
+                          </button>
+                        </div>
+                        <div className="font-mono text-[11px] bg-white p-1.5 rounded border border-slate-200 text-emerald-800 font-bold select-all break-all">
+                          {diagnosticData?.authorizedDomain || 'jifen-295865-11-1301488547.sh.run.tcloudbase.com'}
+                        </div>
+                        <p className="text-[10px] text-slate-500">
+                          填写时切勿添加 <code className="text-slate-700">https://</code> 或路径斜杠 <code className="text-slate-700">/</code>，仅填纯域名。
+                        </p>
+                      </div>
+
+                      <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 space-y-1.5">
+                        <div className="font-bold text-slate-700">3. 微信公众平台准确设置路径：</div>
+                        <ol className="list-decimal list-inside space-y-1 text-[11px] text-slate-600 pl-0.5">
+                          <li>进入电脑端 <a href="https://mp.weixin.qq.com" target="_blank" rel="noreferrer" className="text-blue-600 underline font-semibold inline-flex items-center">微信公众平台 <ExternalLink className="w-2.5 h-2.5 ml-0.5" /></a></li>
+                          <li>点击左侧导航栏：<b>【设置与开发】👉【公众号设置】👉【功能设置】</b></li>
+                          <li>找到第三个功能项：<b>【网页授权域名】</b>并点击【设置】（<b>注意：切勿错填到“JS接口安全域名”或“业务域名”</b>）</li>
+                          <li>填入上方复制的域名，若提示验证 <code className="text-emerald-700 font-mono">MP_verify_*.txt</code> 文件，系统已自动内置动态响应，直接点击确认即可保存成功！</li>
+                        </ol>
+                      </div>
+
+                      <div className="bg-emerald-50 p-2.5 rounded-xl border border-emerald-200 space-y-1.5">
+                        <div className="font-bold text-emerald-900 flex items-center space-x-1">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>推荐临时绿色通道（零等待直接体验）：</span>
+                        </div>
+                        <p className="text-[11px] text-emerald-800">
+                          若微信公众号后台尚未完成年审或未配置域名，您可直接点击下方【使用手机短信验证码登录】或在右上角切换为【测试模式】，无任何门槛，1秒立即进入系统体验志愿积分、打卡与兑换全流程！
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setLoginMethod('phone')}
+                          className="mt-1 w-full py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[11px] font-bold transition-colors cursor-pointer flex items-center justify-center space-x-1"
+                        >
+                          <Smartphone className="w-3 h-3" />
+                          <span>立即切换为手机号快捷登录</span>
+                        </button>
+                      </div>
+
+                      {diagnosticData?.authUrlUserInfo && (
+                        <div className="pt-1 flex items-center space-x-2">
+                          <button
+                            type="button"
+                            onClick={() => handleCopy(selectedScope === 'snsapi_base' ? (diagnosticData.authUrlBase || diagnosticData.authUrlUserInfo) : diagnosticData.authUrlUserInfo, 'authUrl')}
+                            className="flex-1 py-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-medium transition-colors border border-slate-200 flex items-center justify-center space-x-1"
+                          >
+                            <Copy className="w-3 h-3 text-slate-500" />
+                            <span>{copiedItem === 'authUrl' ? '已复制完整授权URL' : '复制微信授权测试完整URL'}</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
 
               <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
                 <button

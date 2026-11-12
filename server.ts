@@ -751,7 +751,7 @@ class MockMySQLDatabase {
   private envMode: 'production' | 'test' = (process.env.WECHAT_ENV_MODE === 'test' ? 'test' : 'production');
   private wechatAppId: string = process.env.WECHAT_APPID || 'wx7fd578a4010d96c7';
   private wechatAppSecret: string = process.env.WECHAT_APPSECRET || 'e70915ee5cf402daa609bfe78537e52a';
-  private wechatOAuthDomain: string = process.env.WECHAT_OAUTH_DOMAIN || 'jifen-295865-11-1301488547.sh.run.tcloudbase.com';
+  private wechatOAuthDomain: string = process.env.WECHAT_OAUTH_DOMAIN || 'test.skycloud.zone';
 
   private getDbFilePath(mode?: 'production' | 'test'): string {
     const targetMode = mode || this.envMode;
@@ -1766,7 +1766,7 @@ async function startServer() {
     };
     scanTickets.set(ticket, session);
 
-    const publicOrigin = process.env.APP_URL || 'https://jifen-295865-11-1301488547.sh.run.tcloudbase.com';
+    const publicOrigin = process.env.APP_URL || `https://${db.getWechatOAuthDomain() || 'test.skycloud.zone'}`;
     const qrUrl = `${publicOrigin}/?scan_ticket=${ticket}`;
 
     res.json({

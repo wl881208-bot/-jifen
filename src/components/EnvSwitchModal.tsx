@@ -294,7 +294,7 @@ export const EnvSwitchModal: React.FC<EnvSwitchModalProps> = ({
                     type="text"
                     value={oauthDomainInput}
                     onChange={(e) => setOauthDomainInput(e.target.value)}
-                    placeholder="如: jifen-295865-11-1301488547.sh.run.tcloudbase.com"
+                    placeholder="如: test.skycloud.zone"
                     className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-mono focus:ring-1 focus:ring-blue-500 focus:outline-hidden"
                   />
                   <p className="text-[10px] text-slate-400 mt-1">

@@ -297,12 +297,12 @@ export const WechatAuthConsole: React.FC<WechatAuthConsoleProps> = ({
               </div>
 
               <div className="text-[11px] text-amber-200/90 leading-relaxed space-y-1">
-                <p><strong>错误原因：</strong>微信公众号后台配置的【网页授权域名】与发起授权的实际域名不匹配。本系统已固定使用微信公众平台所配置的正式授权域名：<code className="bg-black/50 px-1.5 py-0.5 rounded text-amber-300 font-mono">jifen-295865-11-1301488547.sh.run.tcloudbase.com</code>。</p>
+                <p><strong>错误原因：</strong>微信公众号后台配置的【网页授权域名】与发起授权的实际域名不匹配。本系统已固定使用微信公众平台所配置的正式授权域名：<code className="bg-black/50 px-1.5 py-0.5 rounded text-amber-300 font-mono">test.skycloud.zone</code>。</p>
                 <p><strong>验证排查指南：</strong></p>
                 <ol className="list-decimal list-inside space-y-0.5 pl-1 text-amber-100">
                   <li>登录 <a href="https://mp.weixin.qq.com" target="_blank" rel="noreferrer" className="underline font-semibold text-amber-300">微信公众平台 (mp.weixin.qq.com)</a></li>
                   <li>进入 <b>【设置与开发】👉【公众号设置】👉【功能设置】👉【网页授权域名】</b></li>
-                  <li>确认填入的域名为：<code className="bg-black/50 px-1.5 py-0.5 rounded text-amber-300 font-mono">jifen-295865-11-1301488547.sh.run.tcloudbase.com</code>（无需填写 http:// 或路径）</li>
+                  <li>确认填入的域名为：<code className="bg-black/50 px-1.5 py-0.5 rounded text-amber-300 font-mono">test.skycloud.zone</code>（无需填写 http:// 或路径）</li>
                   <li>如微信提示校验 <code className="bg-black/40 px-1 py-0.5 rounded text-amber-300">MP_verify_xxx.txt</code> 文件，系统已自动拦截解析响应，直接点击确认即可通过校验！</li>
                 </ol>
               </div>
@@ -427,7 +427,7 @@ export const WechatAuthConsole: React.FC<WechatAuthConsoleProps> = ({
                 </p>
                 <p className="text-amber-800 leading-snug">
                   请在微信公众号后台【网页授权域名】中添加：<br/>
-                  <code className="font-mono bg-white px-1 py-0.5 rounded border border-amber-200 text-amber-950 font-semibold select-all">jifen-295865-11-1301488547.sh.run.tcloudbase.com</code>
+                  <code className="font-mono bg-white px-1 py-0.5 rounded border border-amber-200 text-amber-950 font-semibold select-all">test.skycloud.zone</code>
                 </p>
               </div>
             </div>

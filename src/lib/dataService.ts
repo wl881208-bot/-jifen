@@ -1002,7 +1002,7 @@ export async function getSystemEnvInfo(): Promise<SystemEnvInfo> {
       isProduction: data.isProduction ?? (data.envMode === 'production'),
       wechatAppId: data.wechatConfig?.appid || '',
       hasAppSecret: Boolean(data.wechatConfig?.hasSecret),
-      oauthDomain: data.wechatConfig?.oauthDomain || 'jifen-295865-11-1301488547.sh.run.tcloudbase.com',
+      oauthDomain: data.wechatConfig?.oauthDomain || 'test.skycloud.zone',
       isTcbGateway: Boolean(data.isTcbGateway),
       currentHost: data.currentHost,
     };
@@ -1013,7 +1013,7 @@ export async function getSystemEnvInfo(): Promise<SystemEnvInfo> {
       isProduction: true,
       wechatAppId: 'wx7fd578a4010d96c7',
       hasAppSecret: true,
-      oauthDomain: 'jifen-295865-11-1301488547.sh.run.tcloudbase.com',
+      oauthDomain: 'test.skycloud.zone',
       isTcbGateway: false,
     };
   }
@@ -1038,7 +1038,7 @@ export async function switchSystemEnvMode(
         isProduction: data.isProduction,
         wechatAppId: data.wechatConfig?.appid,
         hasAppSecret: data.wechatConfig?.hasSecret,
-        oauthDomain: data.wechatConfig?.oauthDomain || 'jifen-295865-11-1301488547.sh.run.tcloudbase.com',
+        oauthDomain: data.wechatConfig?.oauthDomain || 'test.skycloud.zone',
         isTcbGateway: data.isTcbGateway,
         currentHost: data.currentHost,
       };
@@ -1163,7 +1163,7 @@ export async function getWechatAuthUrl(redirectUri?: string, scope: string = 'sn
     return data;
   } catch (e) {
     const appId = cachedEnvInfo?.wechatAppId || 'wx7fd578a4010d96c7';
-    const domain = cachedEnvInfo?.oauthDomain || 'jifen-295865-11-1301488547.sh.run.tcloudbase.com';
+    const domain = cachedEnvInfo?.oauthDomain || 'test.skycloud.zone';
     const targetUri = `https://${domain}/`;
     const encodedUri = encodeURIComponent(targetUri);
     return {
@@ -1209,7 +1209,7 @@ export async function wechatMockLogin(openid: string, customName?: string, avata
 export async function createScanTicket(): Promise<{ success: boolean; ticket?: string; qrUrl?: string; expireSeconds?: number; message?: string }> {
   try {
     const ticket = `scan_tk_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
-    const origin = (typeof window !== 'undefined' && window.location.origin) ? window.location.origin : 'https://jifen-295865-11-1301488547.sh.run.tcloudbase.com';
+    const origin = (typeof window !== 'undefined' && window.location.origin) ? window.location.origin : 'https://test.skycloud.zone';
     const qrUrl = `${origin}/?scan_ticket=${ticket}`;
 
     fetch('/api/wechat/scan/create-ticket', {

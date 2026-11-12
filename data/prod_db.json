@@ -2,7 +2,7 @@
   "envMode": "production",
   "wechatAppId": "wx7fd578a4010d96c7",
   "wechatAppSecret": "e70915ee5cf402daa609bfe78537e52a",
-  "wechatOAuthDomain": "jifen-295865-11-1301488547.sh.run.tcloudbase.com",
+  "wechatOAuthDomain": "test.skycloud.zone",
   "users": [
     {
       "id": "user_admin",

@@ -681,7 +681,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                           <span className="font-bold text-slate-700">2. 微信后台必须填写的【网页授权域名】：</span>
                           <button
                             type="button"
-                            onClick={() => handleCopy(diagnosticData?.authorizedDomain || 'jifen-295865-11-1301488547.sh.run.tcloudbase.com', 'domain')}
+                            onClick={() => handleCopy(diagnosticData?.authorizedDomain || 'test.skycloud.zone', 'domain')}
                             className="text-emerald-700 hover:text-emerald-800 font-bold text-[10px] flex items-center space-x-0.5 cursor-pointer"
                           >
                             {copiedItem === 'domain' ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
@@ -689,7 +689,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                           </button>
                         </div>
                         <div className="font-mono text-[11px] bg-white p-1.5 rounded border border-slate-200 text-emerald-800 font-bold select-all break-all">
-                          {diagnosticData?.authorizedDomain || 'jifen-295865-11-1301488547.sh.run.tcloudbase.com'}
+                          {diagnosticData?.authorizedDomain || 'test.skycloud.zone'}
                         </div>
                         <p className="text-[10px] text-slate-500">
                           填写时切勿添加 <code className="text-slate-700">https://</code> 或路径斜杠 <code className="text-slate-700">/</code>，仅填纯域名。
@@ -995,7 +995,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                         type="text"
                         value={customHost}
                         onChange={(e) => setCustomHost(e.target.value)}
-                        placeholder="https://jifen-295865-11-1301488547.sh.run.tcloudbase.com"
+                        placeholder="https://test.skycloud.zone"
                         className="flex-1 text-xs px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:ring-1 focus:ring-emerald-500"
                       />
                       <button

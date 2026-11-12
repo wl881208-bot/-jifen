@@ -2,6 +2,7 @@
   "envMode": "production",
   "wechatAppId": "wx7fd578a4010d96c7",
   "wechatAppSecret": "e70915ee5cf402daa609bfe78537e52a",
+  "wechatOAuthDomain": "test.skycloud.zone",
   "users": [
     {
       "id": "user_wx_1791969467742",

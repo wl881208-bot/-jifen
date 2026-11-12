@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, SystemEnvMode } from '../types';
 import { notifyScanTicket, confirmScanLogin, createUser } from '../lib/dataService';
+import { UserAvatar, getRealPhone } from './UserAvatar';
 import { 
   ShieldCheck, 
   Smartphone, 
@@ -71,7 +72,7 @@ export const ScanAuthModal: React.FC<ScanAuthModalProps> = ({
         const openid = `wx_scan_${Date.now().toString(36)}_${randId}`;
         const createRes = await createUser({
           name,
-          phone: `138****${randId}`,
+          phone: '',
           avatar: '👤',
           role: 'resident',
           points: 0,
@@ -82,7 +83,7 @@ export const ScanAuthModal: React.FC<ScanAuthModalProps> = ({
         targetUser = createRes.data || {
           id: 'user_wx_' + Date.now(),
           name,
-          phone: `138****${randId}`,
+          phone: '',
           avatar: '👤',
           role: 'resident',
           points: 0,
@@ -119,7 +120,7 @@ export const ScanAuthModal: React.FC<ScanAuthModalProps> = ({
           const openid = `mock_scan_${Date.now().toString(36)}_${randId}`;
           const createRes = await createUser({
             name,
-            phone: `138****${randId}`,
+            phone: '',
             avatar: '👤',
             role: 'resident',
             points: 0,
@@ -192,7 +193,12 @@ export const ScanAuthModal: React.FC<ScanAuthModalProps> = ({
             </p>
             {authorizedUser && (
               <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 text-left flex items-center space-x-2.5">
-                <span className="text-2xl">{authorizedUser.avatar || '👤'}</span>
+                <UserAvatar
+                  avatar={authorizedUser.avatar}
+                  name={authorizedUser.name}
+                  className="w-9 h-9 text-2xl rounded-xl"
+                  imgClassName="w-full h-full rounded-xl object-cover"
+                />
                 <div className="text-xs flex-1 min-w-0">
                   <div className="font-bold text-slate-900 truncate">{authorizedUser.name}</div>
                   <div className="text-[10px] text-slate-500">
@@ -234,11 +240,16 @@ export const ScanAuthModal: React.FC<ScanAuthModalProps> = ({
 
             {currentUser ? (
               <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 flex items-center space-x-2.5">
-                <span className="text-2xl">{currentUser.avatar || '👤'}</span>
+                <UserAvatar
+                  avatar={currentUser.avatar}
+                  name={currentUser.name}
+                  className="w-9 h-9 text-2xl rounded-xl"
+                  imgClassName="w-full h-full rounded-xl object-cover"
+                />
                 <div className="text-xs flex-1 min-w-0">
                   <div className="font-bold text-slate-900 truncate">{currentUser.name}</div>
                   <div className="text-[10px] text-slate-500">
-                    {currentUser.phone} · 可用积分: {currentUser.points} 分
+                    {getRealPhone(currentUser.phone, currentUser.id) ? `${getRealPhone(currentUser.phone, currentUser.id)} · ` : ''}可用积分: {currentUser.points} 分
                   </div>
                 </div>
                 <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">
@@ -301,7 +312,11 @@ export const ScanAuthModal: React.FC<ScanAuthModalProps> = ({
                             onChange={() => setSelectedPreset(p.id)}
                             className="text-emerald-600 focus:ring-emerald-500"
                           />
-                          <span className="text-base">{p.avatar}</span>
+                          <UserAvatar
+                            avatar={p.avatar}
+                            name={p.name}
+                            className="w-6 h-6 text-base rounded-full"
+                          />
                           <div className="flex-1 min-w-0">
                             <span className="truncate">{p.name}</span>
                             <span className="block text-[10px] text-slate-400 font-normal">{p.desc}</span>

@@ -628,7 +628,7 @@ export async function createUser(userData: Partial<User>): Promise<{ success: bo
   const newUser: User = {
     id: newId,
     name: userData.name || '新居民',
-    phone: userData.phone || '13800000000',
+    phone: userData.phone || '',
     avatar: userData.avatar || (userData.role === 'admin' ? '👮‍♂️' : '👤'),
     role: userData.role || 'resident',
     points: userData.points || 0,

@@ -14,6 +14,7 @@ import {
   Eye,
   CheckCircle
 } from 'lucide-react';
+import { UserAvatar } from '../UserAvatar';
 
 interface CommunitySnapFeedModalProps {
   isOpen: boolean;
@@ -195,8 +196,12 @@ export const CommunitySnapFeedModal: React.FC<CommunitySnapFeedModalProps> = ({
                     </div>
                     
                     <div className="flex items-center space-x-2 text-xs text-slate-500">
-                      <span className="font-medium text-slate-700 flex items-center space-x-1">
-                        <span>{issue.userAvatar || '👤'}</span>
+                      <span className="font-medium text-slate-700 flex items-center space-x-1.5">
+                        <UserAvatar
+                          avatar={issue.userAvatar}
+                          name={issue.userName}
+                          className="w-4 h-4 text-xs rounded-full"
+                        />
                         <span>{issue.userName}</span>
                         {issue.userRole === 'party_member' && (
                           <span className="text-[10px] text-amber-700 bg-amber-100 px-1.5 py-0.2 rounded font-bold">

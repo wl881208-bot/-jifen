@@ -848,6 +848,12 @@ class MockMySQLDatabase {
           } else {
             this.users = data.users;
           }
+          // Clean up any auto-generated fake 138****xxxx phones on WeChat accounts
+          this.users.forEach((u: User) => {
+            if (u.id.startsWith('user_wx_') && /^138\*{4}\d{4}$/.test(u.phone || '')) {
+              u.phone = '';
+            }
+          });
           this.activities = data.activities || [];
           this.gifts = data.gifts || [];
           this.registrations = data.registrations || [];
@@ -913,6 +919,9 @@ class MockMySQLDatabase {
   }
 
   public createOrGetWechatUser(openid: string, customName?: string, avatarUrl?: string): { user: User; isNew: boolean } {
+    const normalizedAvatar = avatarUrl
+      ? avatarUrl.trim().replace(/^http:\/\/(thirdwx\.qlogo\.cn|wx\.qlogo\.cn)/i, 'https://$1')
+      : undefined;
     let existing = this.users.find(u => u.openid === openid);
     if (existing) {
       let changed = false;
@@ -920,22 +929,26 @@ class MockMySQLDatabase {
         existing.name = customName;
         changed = true;
       }
-      if (avatarUrl && avatarUrl !== existing.avatar) {
-        existing.avatar = avatarUrl;
+      if (normalizedAvatar && normalizedAvatar !== existing.avatar) {
+        existing.avatar = normalizedAvatar;
+        changed = true;
+      }
+      if (existing.id.startsWith('user_wx_') && /^138\*{4}\d{4}$/.test(existing.phone || '')) {
+        existing.phone = '';
         changed = true;
       }
       if (changed) this.saveToFile();
       return { user: existing, isNew: false };
     }
 
-    // Auto-create a new resident account initialized with 0 points
+    // Auto-create a new resident account initialized with 0 points and empty phone
     const randSuffix = Math.floor(1000 + Math.random() * 9000);
     const newUserId = 'user_wx_' + Date.now();
     const newUser: User = {
       id: newUserId,
       name: customName || `微信居民_${randSuffix}`,
-      phone: `138****${randSuffix}`,
-      avatar: avatarUrl || '👤',
+      phone: '',
+      avatar: normalizedAvatar || '👤',
       role: 'resident',
       points: 0, // Initial points = 0 as per requirements
       totalHours: 0,
@@ -963,7 +976,7 @@ class MockMySQLDatabase {
     const newUser: User = {
       id: newUserId,
       name: userData.name || `居民_${randSuffix}`,
-      phone: userData.phone || `138${randSuffix}0000`,
+      phone: userData.phone !== undefined ? userData.phone : '',
       avatar: userData.avatar || (userData.role === 'admin' ? '👮‍♂️' : '👤'),
       role: userData.role || 'resident',
       points: typeof userData.points === 'number' ? Math.max(0, userData.points) : 0,

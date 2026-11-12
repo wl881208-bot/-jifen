@@ -17,6 +17,7 @@ import { GiftManage } from './GiftManage';
 import { RedemptionVerification } from './RedemptionVerification';
 import { UserManage } from './UserManage';
 import { IssueManage } from './IssueManage';
+import { UserAvatar } from '../UserAvatar';
 import { 
   ShieldCheck, 
   Lock, 
@@ -221,9 +222,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                     className="w-full p-3 rounded-2xl bg-slate-800/70 hover:bg-slate-800 border border-slate-700/80 hover:border-amber-500/50 transition-all text-left flex items-center justify-between group cursor-pointer"
                   >
                     <div className="flex items-center space-x-3">
-                      <span className="text-2xl bg-slate-900 p-1.5 rounded-xl border border-slate-700 group-hover:scale-105 transition-transform">
-                        {admin.avatar}
-                      </span>
+                      <UserAvatar
+                        avatar={admin.avatar}
+                        name={admin.name}
+                        className="w-10 h-10 text-2xl bg-slate-900 p-1 rounded-xl border border-slate-700 group-hover:scale-105 transition-transform"
+                        imgClassName="w-full h-full rounded-lg object-cover"
+                      />
                       <div>
                         <div className="flex items-center space-x-2">
                           <span className="font-bold text-sm text-slate-100 group-hover:text-amber-300 transition-colors">{admin.name}</span>
@@ -407,7 +411,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
               {/* Admin Profile Info */}
               <div className="flex items-center space-x-2 bg-slate-800/90 border border-slate-700 px-3 py-1.5 rounded-xl">
-                <span className="text-base">{currentUser.avatar}</span>
+                <UserAvatar
+                  avatar={currentUser.avatar}
+                  name={currentUser.name}
+                  className="w-6 h-6 text-base rounded-full"
+                />
                 <div className="hidden sm:block text-left">
                   <div className="text-xs font-bold text-slate-200">{currentUser.name}</div>
                   <div className="text-[10px] text-amber-400 font-semibold">{currentUser.badge || '社区管理员'}</div>

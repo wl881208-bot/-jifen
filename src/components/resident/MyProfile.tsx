@@ -18,6 +18,7 @@ import {
   Sparkles, 
   Lock 
 } from 'lucide-react';
+import { UserAvatar, getRealPhone } from '../UserAvatar';
 
 interface MyProfileProps {
   currentUser: User | null;
@@ -111,13 +112,12 @@ export const MyProfile: React.FC<MyProfileProps> = ({
       <div className="bg-white rounded-3xl p-4 sm:p-6 border border-slate-200/90 shadow-xs space-y-3 sm:space-y-4">
         <div className="flex items-start sm:items-center justify-between gap-2">
           <div className="flex items-start sm:items-center space-x-3 sm:space-x-4 min-w-0 flex-1">
-            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl border border-red-100 shrink-0 overflow-hidden bg-red-50 flex items-center justify-center text-3xl sm:text-4xl shadow-xs">
-              {currentUser.avatar && (currentUser.avatar.startsWith('http') || currentUser.avatar.startsWith('data:')) ? (
-                <img src={currentUser.avatar} alt={currentUser.name} className="w-full h-full object-cover" />
-              ) : (
-                <span>{currentUser.avatar || '👤'}</span>
-              )}
-            </div>
+            <UserAvatar
+              avatar={currentUser.avatar}
+              name={currentUser.name}
+              className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl border border-red-100 bg-red-50 text-3xl sm:text-4xl shadow-xs"
+              imgClassName="w-full h-full rounded-2xl object-cover"
+            />
             <div className="space-y-1 min-w-0 flex-1">
               <div className="flex items-center space-x-1.5 sm:space-x-2 flex-wrap gap-y-1">
                 <h2 className="text-base sm:text-xl font-bold text-slate-900 truncate">{currentUser.name}</h2>
@@ -137,12 +137,13 @@ export const MyProfile: React.FC<MyProfileProps> = ({
                 </span>
               </div>
               <p className="text-[11px] sm:text-xs text-slate-500 leading-tight">
-                联系电话: {currentUser.phone} <span className="hidden xs:inline">·</span> <br className="xs:hidden" />入会时间: {currentUser.joinedDate}
+                {getRealPhone(currentUser.phone, currentUser.id) ? (
+                  <>
+                    联系电话: {getRealPhone(currentUser.phone, currentUser.id)} <span className="hidden xs:inline">·</span> <br className="xs:hidden" />
+                  </>
+                ) : null}
+                入会时间: {currentUser.joinedDate}
               </p>
-              <div className="flex items-center space-x-1 text-[10px] sm:text-xs text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100 w-fit max-w-full">
-                <span className="font-semibold shrink-0">微信 OpenID:</span>
-                <span className="font-mono text-[10px] sm:text-[11px] font-bold text-emerald-800 truncate">{currentUser.openid || `wx_${currentUser.id}`}</span>
-              </div>
             </div>
           </div>
 

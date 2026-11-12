@@ -7,6 +7,7 @@ import {
   PointsHistoryItem,
   UserRole 
 } from '../../types';
+import { UserAvatar, isAvatarUrl, getRealPhone } from '../UserAvatar';
 import { 
   Users, 
   ShieldCheck, 
@@ -189,7 +190,7 @@ export const UserManage: React.FC<UserManageProps> = ({
     setSelectedUser(user);
     setEditForm({
       name: user.name,
-      phone: user.phone,
+      phone: getRealPhone(user.phone, user.id),
       avatar: user.avatar || '👤',
       role: user.role,
       badge: user.badge || '',
@@ -201,8 +202,8 @@ export const UserManage: React.FC<UserManageProps> = ({
   const handleSubmitEditUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedUser) return;
-    if (!editForm.name.trim() || !editForm.phone.trim()) {
-      showLocalToast('姓名与手机号不能为空', true);
+    if (!editForm.name.trim()) {
+      showLocalToast('姓名不能为空', true);
       return;
     }
 
@@ -239,7 +240,7 @@ export const UserManage: React.FC<UserManageProps> = ({
       if (!window.confirm(`警告：您正在将自己当前的管理员权限调整为${roleLabels[targetRole]}，操作后您将无法直接操作管理后台！确认继续吗？`)) {
         return;
       }
-    } else if (!window.confirm(`确认将用户【${user.name}】(${user.phone}) ${actionText} 吗？`)) {
+    } else if (!window.confirm(`确认将用户【${user.name}】${getRealPhone(user.phone, user.id) ? `(${getRealPhone(user.phone, user.id)}) ` : ''}${actionText} 吗？`)) {
       return;
     }
 
@@ -539,9 +540,12 @@ export const UserManage: React.FC<UserManageProps> = ({
                   {/* Left: Avatar & Basic Info */}
                   <div className="flex items-start sm:items-center space-x-3.5 min-w-[260px]">
                     <div className="relative shrink-0">
-                      <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-2xl border border-slate-200 shadow-xs">
-                        {user.avatar || '👤'}
-                      </div>
+                      <UserAvatar
+                        avatar={user.avatar}
+                        name={user.name}
+                        className="w-12 h-12 bg-slate-100 rounded-2xl text-2xl border border-slate-200 shadow-xs"
+                        imgClassName="w-full h-full rounded-2xl object-cover"
+                      />
                       {isAdmin && (
                         <div className="absolute -bottom-1 -right-1 bg-amber-500 text-slate-950 p-0.5 rounded-lg shadow-xs" title="社区管理员">
                           <ShieldCheck className="w-3.5 h-3.5" />
@@ -579,8 +583,12 @@ export const UserManage: React.FC<UserManageProps> = ({
                       </div>
 
                       <div className="flex items-center space-x-3 text-xs text-slate-500 flex-wrap gap-y-1">
-                        <span className="font-mono">{user.phone}</span>
-                        <span>·</span>
+                        {getRealPhone(user.phone, user.id) ? (
+                          <>
+                            <span className="font-mono">{getRealPhone(user.phone, user.id)}</span>
+                            <span>·</span>
+                          </>
+                        ) : null}
                         <span>注册: {user.joinedDate || '2025-01-01'}</span>
                         {user.openid ? (
                           <span className="inline-flex items-center space-x-1 text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
@@ -848,10 +856,10 @@ export const UserManage: React.FC<UserManageProps> = ({
               </div>
 
               <div>
-                <label className="font-bold text-slate-700 block mb-1">手机号 *</label>
+                <label className="font-bold text-slate-700 block mb-1">手机号（选填）</label>
                 <input
                   type="text"
-                  required
+                  placeholder="未绑定手机号（可留空）"
                   value={editForm.phone}
                   onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
                   className="w-full border border-slate-200 rounded-xl p-2.5 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono"
@@ -885,7 +893,26 @@ export const UserManage: React.FC<UserManageProps> = ({
 
               <div>
                 <label className="font-bold text-slate-700 block mb-1.5">选择头像</label>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  {selectedUser && isAvatarUrl(selectedUser.avatar) && (
+                    <button
+                      type="button"
+                      onClick={() => setEditForm({ ...editForm, avatar: selectedUser.avatar })}
+                      className={`px-2 h-8 rounded-xl text-xs flex items-center space-x-1.5 border transition-all cursor-pointer ${
+                        editForm.avatar === selectedUser.avatar
+                          ? 'border-emerald-500 bg-emerald-50 text-emerald-800 font-bold shadow-xs'
+                          : 'border-slate-200 hover:bg-slate-50 text-slate-600'
+                      }`}
+                      title="使用微信真实头像"
+                    >
+                      <UserAvatar
+                        avatar={selectedUser.avatar}
+                        name={selectedUser.name}
+                        className="w-5 h-5 rounded-full"
+                      />
+                      <span>微信头像</span>
+                    </button>
+                  )}
                   {AVATAR_OPTIONS.map((av) => (
                     <button
                       type="button"
@@ -940,9 +967,16 @@ export const UserManage: React.FC<UserManageProps> = ({
 
             {/* Target User Info Header */}
             <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex items-center space-x-3 text-xs">
-              <span className="text-2xl">{selectedUser.avatar || '👤'}</span>
+              <UserAvatar
+                avatar={selectedUser.avatar}
+                name={selectedUser.name}
+                className="w-9 h-9 text-2xl rounded-xl"
+                imgClassName="w-full h-full rounded-xl object-cover"
+              />
               <div>
-                <div className="font-bold text-slate-900">{selectedUser.name} ({selectedUser.phone})</div>
+                <div className="font-bold text-slate-900">
+                  {selectedUser.name}{getRealPhone(selectedUser.phone, selectedUser.id) ? ` (${getRealPhone(selectedUser.phone, selectedUser.id)})` : ''}
+                </div>
                 <div className="text-slate-500 text-[11px] flex items-center space-x-2 mt-0.5">
                   <span>当前积分: <strong className="text-red-600">{selectedUser.points} 分</strong></span>
                   <span>·</span>
@@ -1055,7 +1089,7 @@ export const UserManage: React.FC<UserManageProps> = ({
                 <div>
                   <h3 className="font-bold text-slate-900 text-base">【{selectedUser.name}】志愿与积分综合档案</h3>
                   <div className="text-[11px] text-slate-400">
-                    手机号: {selectedUser.phone} · 身份: {
+                    {getRealPhone(selectedUser.phone, selectedUser.id) ? `手机号: ${getRealPhone(selectedUser.phone, selectedUser.id)} · ` : ''}身份: {
                       selectedUser.role === 'admin' 
                         ? '社区管理员' 
                         : selectedUser.role === 'party_member' 
@@ -1206,7 +1240,7 @@ export const UserManage: React.FC<UserManageProps> = ({
             <div className="space-y-1.5">
               <h3 className="font-bold text-slate-900 text-base">确认删除/注销用户档案？</h3>
               <p className="text-xs text-slate-500 leading-relaxed">
-                即将删除用户【<strong className="text-slate-800">{selectedUser.name}</strong>】({selectedUser.phone})。删除后其积分与工时数据将被清空。
+                即将删除用户【<strong className="text-slate-800">{selectedUser.name}</strong>】{getRealPhone(selectedUser.phone, selectedUser.id) ? `(${getRealPhone(selectedUser.phone, selectedUser.id)})` : ''}。删除后其积分与工时数据将被清空。
               </p>
             </div>
 

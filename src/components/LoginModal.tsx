@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User, SystemEnvMode, WechatDiagnosticInfo } from '../types';
 import { QRCodeSVG } from 'qrcode.react';
+import { UserAvatar } from './UserAvatar';
 import { 
   X, 
   Smartphone, 
@@ -287,7 +288,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         const openid = `wx_scan_${Date.now()}`;
         const newU = await createUser({
           name,
-          phone: `138****${randId}`,
+          phone: '',
           avatar: '👤',
           role: 'resident',
           points: 0,
@@ -845,9 +846,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                     className="w-full text-left p-3 rounded-2xl border border-slate-200 hover:border-amber-500 hover:bg-amber-50/50 transition-all flex items-center justify-between group cursor-pointer"
                   >
                     <div className="flex items-center space-x-3">
-                      <span className="text-2xl bg-slate-100 p-2 rounded-xl group-hover:scale-105 transition-transform">
-                        {u.avatar}
-                      </span>
+                      <UserAvatar
+                        avatar={u.avatar}
+                        name={u.name}
+                        className="w-10 h-10 text-2xl bg-slate-100 p-1 rounded-xl group-hover:scale-105 transition-transform"
+                        imgClassName="w-full h-full rounded-lg object-cover"
+                      />
                       <div>
                         <div className="flex items-center space-x-2">
                           <span className="font-bold text-sm text-slate-800">{u.name}</span>

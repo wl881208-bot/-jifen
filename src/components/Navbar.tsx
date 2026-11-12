@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 
 import { getPublicAppUrl } from '../lib/appConfig';
+import { UserAvatar, getRealPhone } from './UserAvatar';
 
 interface NavbarProps {
   currentUser: User | null;
@@ -125,13 +126,12 @@ export const Navbar: React.FC<NavbarProps> = ({
                   className="flex items-center space-x-1.5 bg-red-700/90 hover:bg-red-700 px-2 sm:px-2.5 py-1.5 rounded-lg border border-red-500/50 text-xs text-white transition-colors cursor-pointer"
                   title="点击管理/切换当前账号或退出"
                 >
-                  <span className="w-5 h-5 rounded-full overflow-hidden flex items-center justify-center text-xs shrink-0 bg-red-800/80">
-                    {currentUser.avatar && (currentUser.avatar.startsWith('http') || currentUser.avatar.startsWith('data:')) ? (
-                      <img src={currentUser.avatar} alt={currentUser.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <span>{currentUser.avatar || '👤'}</span>
-                    )}
-                  </span>
+                  <UserAvatar
+                    avatar={currentUser.avatar}
+                    name={currentUser.name}
+                    className="w-5 h-5 rounded-full text-xs bg-red-800/80"
+                    imgClassName="w-full h-full rounded-full object-cover"
+                  />
                   <span className="font-semibold max-w-[70px] sm:max-w-none truncate">{currentUser.name}</span>
                   {currentUser.role === 'party_member' && (
                     <span className="bg-amber-300 text-red-900 font-extrabold px-1.5 py-0.5 rounded text-[10px] hidden xs:inline flex items-center space-x-0.5">
@@ -157,13 +157,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                       
                       {/* Active User Card */}
                       <div className="px-3.5 py-2 bg-slate-50 border-b border-slate-100 flex items-center space-x-2.5">
-                        <span className="text-2xl bg-white p-1 rounded-xl shadow-2xs border border-slate-200">
-                          {currentUser.avatar}
-                        </span>
+                        <UserAvatar
+                          avatar={currentUser.avatar}
+                          name={currentUser.name}
+                          className="w-9 h-9 text-2xl bg-white p-0.5 rounded-xl shadow-2xs border border-slate-200"
+                          imgClassName="w-full h-full rounded-lg object-cover"
+                        />
                         <div className="min-w-0 flex-1">
                           <div className="font-bold text-slate-900 truncate">{currentUser.name}</div>
                           <div className="text-[10px] text-slate-400 truncate">
-                            {currentUser.phone} · {currentUser.points}分 ({currentUser.role === 'party_member' ? '党员先锋' : '居民志愿者'})
+                            {getRealPhone(currentUser.phone, currentUser.id) ? `${getRealPhone(currentUser.phone, currentUser.id)} · ` : ''}{currentUser.points}分 ({currentUser.role === 'party_member' ? '党员先锋' : '居民志愿者'})
                           </div>
                         </div>
                       </div>
@@ -196,7 +199,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                                 }`}
                               >
                                 <div className="flex items-center space-x-2 truncate pr-1">
-                                  <span className="text-base">{u.avatar}</span>
+                                  <UserAvatar
+                                    avatar={u.avatar}
+                                    name={u.name}
+                                    className="w-6 h-6 text-base rounded-full"
+                                  />
                                   <div className="truncate">
                                     <div className="font-medium text-slate-800 truncate">{u.name}</div>
                                     <div className="text-[10px] text-slate-400">

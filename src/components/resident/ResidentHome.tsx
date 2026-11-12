@@ -20,6 +20,7 @@ import {
   Eye,
   CheckCircle
 } from 'lucide-react';
+import { UserAvatar, getRealPhone } from '../UserAvatar';
 
 interface ResidentHomeProps {
   currentUser: User | null;
@@ -90,9 +91,12 @@ export const ResidentHome: React.FC<ResidentHomeProps> = ({
           {/* User Info Header */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-2.5 min-w-0 pr-2">
-              <div className="text-3xl sm:text-4xl bg-white/20 p-2 rounded-2xl backdrop-blur-md shadow-inner border border-white/30 shrink-0">
-                {currentUser.avatar}
-              </div>
+              <UserAvatar
+                avatar={currentUser.avatar}
+                name={currentUser.name}
+                className="w-12 h-12 sm:w-14 sm:h-14 text-3xl sm:text-4xl bg-white/20 p-1.5 rounded-2xl backdrop-blur-md shadow-inner border border-white/30"
+                imgClassName="w-full h-full rounded-xl object-cover"
+              />
               <div className="min-w-0">
                 <div className="flex items-center space-x-1.5 flex-wrap gap-y-1">
                   <h2 className="text-base sm:text-xl font-bold tracking-tight truncate">{currentUser.name}</h2>
@@ -108,7 +112,8 @@ export const ResidentHome: React.FC<ResidentHomeProps> = ({
                   </span>
                 </div>
                 <p className="text-[11px] sm:text-xs text-red-100 mt-0.5 truncate">
-                  {currentUser.role === 'admin' ? '社区管理员' : currentUser.role === 'party_member' ? '党员先锋岗' : '居民志愿者'} · {currentUser.phone}
+                  {currentUser.role === 'admin' ? '社区管理员' : currentUser.role === 'party_member' ? '党员先锋岗' : '居民志愿者'}
+                  {getRealPhone(currentUser.phone, currentUser.id) ? ` · ${getRealPhone(currentUser.phone, currentUser.id)}` : ''}
                 </p>
               </div>
             </div>

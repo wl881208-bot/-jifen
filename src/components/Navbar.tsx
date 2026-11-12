@@ -97,27 +97,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Right Action Bar */}
           <div className="flex items-center space-x-1.5 sm:space-x-2.5">
-            
-            {/* Global Environment Mode Switcher Button (Production vs Test) */}
-            <button
-              type="button"
-              onClick={onOpenEnvSwitchModal}
-              className={`px-2 py-1 sm:px-2.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 border shadow-xs cursor-pointer shrink-0 active:scale-95 ${
-                currentEnvMode === 'production'
-                  ? 'bg-emerald-800/90 hover:bg-emerald-800 text-emerald-100 border-emerald-400/60'
-                  : 'bg-amber-400 hover:bg-amber-300 text-slate-950 border-amber-200'
-              }`}
-              title="点击切换：真实微信生产环境 / 模拟测试演练环境"
-            >
-              <span className={`w-2 h-2 rounded-full shrink-0 ${currentEnvMode === 'production' ? 'bg-emerald-300 animate-pulse' : 'bg-amber-900'}`} />
-              <span className="hidden xs:inline">
-                {currentEnvMode === 'production' ? '🟢 真实微信' : '🟡 测试模式'}
-              </span>
-              <span className="xs:hidden">
-                {currentEnvMode === 'production' ? '真实' : '测试'}
-              </span>
-            </button>
-
             {/* Current Active User Info / Dropdown OR Login Button */}
             {currentUser ? (
               <div className="relative">

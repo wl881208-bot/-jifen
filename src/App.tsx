@@ -170,8 +170,10 @@ export default function App() {
         const savedUserId = localStorage.getItem('logged_in_user_id');
         const savedOpenid = localStorage.getItem('wechat_openid');
         const isTestPersona = Boolean(
-          (savedUserId && (savedUserId === 'user_1' || savedUserId === 'user_2' || savedUserId === 'user_3' || savedUserId.startsWith('mock_'))) ||
-          (savedOpenid && (savedOpenid.startsWith('mock_') || savedOpenid.startsWith('fake_')))
+          savedUserId !== 'user_admin' && (
+            (savedUserId && (savedUserId === 'user_1' || savedUserId === 'user_2' || savedUserId === 'user_3' || savedUserId.startsWith('mock_'))) ||
+            (savedOpenid && (savedOpenid.startsWith('mock_') || savedOpenid.startsWith('fake_')))
+          )
         );
         if (isTestPersona) {
           localStorage.removeItem('logged_in_user_id');
@@ -256,7 +258,7 @@ export default function App() {
           try {
             const parsed = JSON.parse(cachedUserJson);
             if (parsed && parsed.id) {
-              const isTest = parsed.id === 'user_1' || parsed.id === 'user_2' || parsed.id === 'user_3' || Boolean(parsed.openid?.startsWith('mock_'));
+              const isTest = (parsed.id === 'user_1' || parsed.id === 'user_2' || parsed.id === 'user_3' || Boolean(parsed.openid?.startsWith('mock_'))) && parsed.role !== 'admin';
               if (activeEnv !== 'production' || !isTest) {
                 setCurrentUser(parsed);
               }
@@ -300,7 +302,7 @@ export default function App() {
             if (savedUserId) {
               const matched = u.find(user => user.id === savedUserId);
               if (matched) {
-                const isTest = matched.id === 'user_1' || matched.id === 'user_2' || matched.id === 'user_3' || Boolean(matched.openid?.startsWith('mock_'));
+                const isTest = (matched.id === 'user_1' || matched.id === 'user_2' || matched.id === 'user_3' || Boolean(matched.openid?.startsWith('mock_'))) && matched.role !== 'admin';
                 if (activeEnv === 'production' && isTest) {
                   localStorage.removeItem('logged_in_user_id');
                   localStorage.removeItem('wechat_openid');
@@ -373,6 +375,7 @@ export default function App() {
   const handleLogout = () => {
     localStorage.removeItem('logged_in_user_id');
     localStorage.removeItem('wechat_openid');
+    localStorage.removeItem('cached_user_profile');
     setCurrentUser(null);
     setResidentTab('home');
     showToast('已安全退出当前账号，进入未登录浏览模式', 'info');
@@ -388,11 +391,12 @@ export default function App() {
 
   // Active User Selection (e.g. from dropdown or switcher)
   const handleUserSelect = (user: User) => {
-    if (envMode === 'production') {
+    if (envMode === 'production' && user.role !== 'admin') {
       showToast('真实微信生产模式下已禁用测试账号切换', 'error');
       return;
     }
     localStorage.setItem('logged_in_user_id', user.id);
+    localStorage.setItem('cached_user_profile', JSON.stringify(user));
     if (user.openid) localStorage.setItem('wechat_openid', user.openid);
     setCurrentUser(user);
     showToast(`已切换至账号：${user.name}`);
@@ -522,8 +526,16 @@ export default function App() {
           adminTab={adminTab}
           onAdminTabChange={(tab) => setAdminTab(tab)}
           onLoginAsAdmin={(adminUser) => {
-            handleUserSelect(adminUser);
-            showToast(`已登录管理员身份：${adminUser.name}`);
+            const normalizedAdmin: User = { ...adminUser, role: 'admin' };
+            localStorage.setItem('logged_in_user_id', normalizedAdmin.id);
+            localStorage.setItem('cached_user_profile', JSON.stringify(normalizedAdmin));
+            if (normalizedAdmin.openid) {
+              localStorage.setItem('wechat_openid', normalizedAdmin.openid);
+            } else {
+              localStorage.removeItem('wechat_openid');
+            }
+            setCurrentUser(normalizedAdmin);
+            showToast(`已登录管理员身份：${normalizedAdmin.name}`, 'success');
           }}
           onLogoutAdmin={() => {
             handleLogout();

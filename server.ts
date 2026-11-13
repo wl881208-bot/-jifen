@@ -550,6 +550,18 @@ function getDefaultData() {
 function getProductionDefaultData() {
   const users: User[] = [
     {
+      id: 'user_wx_1794464019444',
+      name: 'Torres王',
+      phone: '',
+      avatar: 'https://thirdwx.qlogo.cn/mmopen/vi_32/shCw3VpCGfx3dHav1lOyfJ9ib4wNk0ib3tUfQdqSn8nLd3iajVfWlOowlCeCql79Kic5HNfTmPJf9Us2kSFJzAicK4POwonKCm8hvq8sM0qalFib0/132',
+      role: 'resident',
+      points: 0,
+      totalHours: 0,
+      badge: '微信社区新人',
+      joinedDate: '2026-11-12',
+      openid: 'opfVW1NjP9mtg29-WiXTQyk1gClk',
+    },
+    {
       id: 'user_admin',
       name: '王主任 (管理员)',
       phone: '133****9999',
@@ -752,6 +764,7 @@ class MockMySQLDatabase {
   private wechatAppId: string = process.env.WECHAT_APPID || 'wx7fd578a4010d96c7';
   private wechatAppSecret: string = process.env.WECHAT_APPSECRET || 'e70915ee5cf402daa609bfe78537e52a';
   private wechatOAuthDomain: string = process.env.WECHAT_OAUTH_DOMAIN || 'test.skycloud.zone';
+  private adminPassword: string = process.env.ADMIN_PASSWORD || 'admin123';
 
   private getDbFilePath(mode?: 'production' | 'test'): string {
     const targetMode = mode || this.envMode;
@@ -870,6 +883,9 @@ class MockMySQLDatabase {
           if (data.wechatOAuthDomain) {
             this.wechatOAuthDomain = data.wechatOAuthDomain;
           }
+          if (data.adminPassword) {
+            this.adminPassword = data.adminPassword;
+          }
           console.log('[MySQL Engine] Database loaded from local disk storage (mode: ' + this.envMode + '):', filePath);
           return true;
         }
@@ -878,6 +894,65 @@ class MockMySQLDatabase {
       console.warn('DB loadFromFile error:', e);
     }
     return false;
+  }
+
+  public getAdminPassword(): string {
+    return this.adminPassword;
+  }
+
+  public changeAdminPassword(oldPassword: string, newPassword: string): { success: boolean; message: string } {
+    if (oldPassword !== this.adminPassword) {
+      return { success: false, message: '原管理密码不正确，请核对后重试' };
+    }
+    if (!newPassword || newPassword.trim().length < 4) {
+      return { success: false, message: '新密码长度不能少于 4 位' };
+    }
+    this.adminPassword = newPassword.trim();
+    this.saveToFile();
+    return { success: true, message: '管理后台登录口令已更新并生效！' };
+  }
+
+  public importBackupData(payload: any, mode: 'replace' | 'merge' = 'merge'): { success: boolean; message: string; usersCount: number } {
+    if (!payload || typeof payload !== 'object') {
+      return { success: false, message: '无效的数据备份格式', usersCount: this.users.length };
+    }
+    if (mode === 'replace') {
+      if (Array.isArray(payload.users) && payload.users.length > 0) this.users = payload.users;
+      if (Array.isArray(payload.activities)) this.activities = payload.activities;
+      if (Array.isArray(payload.gifts)) this.gifts = payload.gifts;
+      if (Array.isArray(payload.registrations)) this.registrations = payload.registrations;
+      if (Array.isArray(payload.serviceRecords)) this.serviceRecords = payload.serviceRecords;
+      if (Array.isArray(payload.redemptions)) this.redemptions = payload.redemptions;
+      if (Array.isArray(payload.pointsHistory)) this.pointsHistory = payload.pointsHistory;
+      if (Array.isArray(payload.issues)) this.issues = payload.issues;
+    } else {
+      const mergeById = <T extends { id: string }>(target: T[], incoming?: T[]) => {
+        if (!Array.isArray(incoming)) return target;
+        const map = new Map<string, T>();
+        target.forEach(item => map.set(item.id, item));
+        incoming.forEach(item => {
+          if (item && item.id && !map.has(item.id)) {
+            target.unshift(item);
+            map.set(item.id, item);
+          }
+        });
+        return target;
+      };
+      mergeById(this.users, payload.users);
+      mergeById(this.activities, payload.activities);
+      mergeById(this.gifts, payload.gifts);
+      mergeById(this.registrations, payload.registrations);
+      mergeById(this.serviceRecords, payload.serviceRecords);
+      mergeById(this.redemptions, payload.redemptions);
+      mergeById(this.pointsHistory, payload.pointsHistory);
+      mergeById(this.issues, payload.issues);
+    }
+    this.saveToFile();
+    return {
+      success: true,
+      message: `数据恢复/同步成功！当前共有 ${this.users.length} 位注册用户`,
+      usersCount: this.users.length,
+    };
   }
 
   public seed(force: boolean = false) {
@@ -902,6 +977,7 @@ class MockMySQLDatabase {
       wechatAppId: this.wechatAppId,
       wechatAppSecret: this.wechatAppSecret,
       wechatOAuthDomain: this.wechatOAuthDomain,
+      adminPassword: this.adminPassword,
       users: this.users,
       activities: this.activities,
       gifts: this.gifts,
@@ -1186,6 +1262,75 @@ class MockMySQLDatabase {
       this.gifts[idx] = { ...this.gifts[idx], ...updates };
       this.saveToFile();
     }
+  }
+
+  public deleteGift(id: string): boolean {
+    const idx = this.gifts.findIndex(g => g.id === id);
+    if (idx === -1) return false;
+    this.gifts.splice(idx, 1);
+    this.saveToFile();
+    return true;
+  }
+
+  public confirmActivityRegistrationCheckin(
+    registrationId: string,
+    adminName: string = '社区管理员'
+  ): { success: boolean; message: string } {
+    const reg = this.registrations.find(r => r.id === registrationId);
+    if (!reg) {
+      return { success: false, message: '未找到该报名记录' };
+    }
+    if (reg.status === 'completed') {
+      return { success: false, message: `【${reg.userName}】已签到发放过该活动的工时与积分，请勿重复发放` };
+    }
+    const act = this.activities.find(a => a.id === reg.activityId);
+    const hours = act ? act.hours : (reg.hours || 2);
+    const points = act ? act.pointsReward : (reg.pointsReward || 40);
+    const now = new Date().toLocaleString('zh-CN', { hour12: false });
+
+    reg.status = 'completed';
+    this.updateUserPointsAndHours(reg.userId, points, hours);
+
+    // Record in serviceRecords as approved
+    const existingRec = this.serviceRecords.find(
+      s => s.activityId === reg.activityId && s.userId === reg.userId
+    );
+    if (existingRec) {
+      existingRec.status = 'approved';
+      existingRec.reviewedAt = now;
+    } else {
+      this.serviceRecords.unshift({
+        id: 'rec_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5),
+        userId: reg.userId,
+        userName: reg.userName,
+        userPhone: reg.userPhone || '',
+        activityId: reg.activityId,
+        activityTitle: reg.activityTitle,
+        hours,
+        pointsEarned: points,
+        proofText: `现场签到核验通过（核验人：${adminName}）`,
+        status: 'approved',
+        createdAt: now,
+        reviewedAt: now,
+      });
+    }
+
+    // Record points history
+    this.pointsHistory.unshift({
+      id: 'pts_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5),
+      userId: reg.userId,
+      type: 'earn',
+      amount: points,
+      title: `活动现场签到：${reg.activityTitle}`,
+      description: `管理员【${adminName}】确认到场，发放工时 +${hours}h，积分 +${points}分`,
+      createdAt: now,
+    });
+
+    this.saveToFile();
+    return {
+      success: true,
+      message: `已为【${reg.userName}】确认签到并发放 +${hours}小时工时、+${points}积分！`,
+    };
   }
 
   public redeemGift(userId: string, giftId: string): { success: boolean; message: string; redemption?: Redemption } {
@@ -3763,6 +3908,67 @@ Page({
     res.json({ success: true, data: db.getAllData() });
   });
 
+  // Admin Auth & Backup Routes
+  app.post('/api/admin/login', (req, res) => {
+    const { account, password, openid } = req.body;
+    const allUsers = db.getAllData().users;
+    const admins = allUsers.filter(u => u.role === 'admin');
+
+    // 1. If logging in via verified WeChat openid of an admin user
+    if (openid) {
+      const matchedByOpenid = admins.find(u => u.openid === openid);
+      if (matchedByOpenid) {
+        return res.json({
+          success: true,
+          user: matchedByOpenid,
+          message: `微信管理员身份验证通过：欢迎，【${matchedByOpenid.name}】`,
+        });
+      }
+    }
+
+    // 2. Verify password
+    const expectedPwd = db.getAdminPassword();
+    if (!password || password.trim() !== expectedPwd) {
+      return res.status(401).json({
+        success: false,
+        message: '管理认证口令不正确（默认初始口令为 admin123）',
+      });
+    }
+
+    const cleanAcc = (account || '').trim();
+    const matchedAdmin = admins.find(
+      u =>
+        !cleanAcc ||
+        cleanAcc === 'admin' ||
+        cleanAcc === '13399999999' ||
+        cleanAcc === '13900000000' ||
+        u.name.includes(cleanAcc) ||
+        (u.phone && u.phone.includes(cleanAcc))
+    ) || admins[0];
+
+    if (!matchedAdmin) {
+      return res.status(404).json({ success: false, message: '未找到有效的管理员账户' });
+    }
+
+    res.json({
+      success: true,
+      user: matchedAdmin,
+      message: `管理员认证成功：欢迎回来，【${matchedAdmin.name}】`,
+    });
+  });
+
+  app.post('/api/admin/change-password', (req, res) => {
+    const { oldPassword, newPassword } = req.body;
+    const result = db.changeAdminPassword(oldPassword || '', newPassword || '');
+    res.status(result.success ? 200 : 400).json(result);
+  });
+
+  app.post('/api/db/import', (req, res) => {
+    const { data, mode } = req.body;
+    const result = db.importBackupData(data || req.body, mode || 'merge');
+    res.json(result);
+  });
+
   // Activity routes
   app.post('/api/activities', (req, res) => {
     const act = db.createActivity(req.body);
@@ -3783,6 +3989,29 @@ Page({
     const { userId, userName, userPhone } = req.body;
     const result = db.registerForActivity(userId, req.params.id, userName, userPhone);
     res.json(result);
+  });
+
+  app.post('/api/registrations/:id/checkin', (req, res) => {
+    const { adminName } = req.body;
+    const result = db.confirmActivityRegistrationCheckin(req.params.id, adminName);
+    res.json(result);
+  });
+
+  app.post('/api/activities/:id/checkin-all', (req, res) => {
+    const { adminName } = req.body;
+    const regs = db.getAllData().registrations.filter(
+      r => r.activityId === req.params.id && r.status !== 'completed'
+    );
+    let count = 0;
+    regs.forEach(r => {
+      const resCheck = db.confirmActivityRegistrationCheckin(r.id, adminName);
+      if (resCheck.success) count++;
+    });
+    res.json({
+      success: true,
+      count,
+      message: count > 0 ? `已成功为 ${count} 位报名志愿者批量完成签到并发放工时与积分！` : '所有报名人员均已签到发分，无需重复操作',
+    });
   });
 
   // Service Records
@@ -3806,6 +4035,11 @@ Page({
   app.put('/api/gifts/:id', (req, res) => {
     db.updateGift(req.params.id, req.body);
     res.json({ success: true });
+  });
+
+  app.delete('/api/gifts/:id', (req, res) => {
+    const success = db.deleteGift(req.params.id);
+    res.json({ success, message: success ? '礼品已删除' : '未找到该礼品' });
   });
 
   app.post('/api/gifts/:id/redeem', (req, res) => {

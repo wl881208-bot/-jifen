@@ -491,6 +491,39 @@ export async function fetchAndSyncAllData(): Promise<boolean> {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     if (data && Array.isArray(data.users)) {
+      // Auto-recover any real WeChat/phone users from browser local snapshot if container restarted
+      if (typeof localStorage !== 'undefined') {
+        try {
+          const snapRaw = localStorage.getItem('community_db_snapshot_v1');
+          if (snapRaw) {
+            const snap = JSON.parse(snapRaw);
+            const serverUserIds = new Set((data.users as User[]).map(u => u.id));
+            const serverOpenIds = new Set((data.users as User[]).map(u => u.openid).filter(Boolean));
+            const missingRealUsers = (snap.users || []).filter(
+              (u: User) =>
+                u &&
+                u.id &&
+                !u.id.startsWith('mock_') &&
+                u.id !== 'user_1' &&
+                u.id !== 'user_2' &&
+                u.id !== 'user_3' &&
+                !serverUserIds.has(u.id) &&
+                (!u.openid || !serverOpenIds.has(u.openid))
+            );
+            if (missingRealUsers.length > 0) {
+              fetch('/api/db/import', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ data: { users: missingRealUsers }, mode: 'merge' }),
+              }).catch(() => {});
+              data.users = [...missingRealUsers, ...data.users];
+            }
+          }
+        } catch {
+          // ignore snapshot parse errors
+        }
+      }
+
       cachedUsers = data.users || [];
       cachedActivities = data.activities || [];
       cachedGifts = data.gifts || [];
@@ -499,6 +532,28 @@ export async function fetchAndSyncAllData(): Promise<boolean> {
       cachedRedemptions = data.redemptions || [];
       cachedPointsHistory = data.pointsHistory || [];
       cachedIssues = data.issues || [];
+
+      if (typeof localStorage !== 'undefined') {
+        try {
+          localStorage.setItem(
+            'community_db_snapshot_v1',
+            JSON.stringify({
+              updatedAt: new Date().toISOString(),
+              users: cachedUsers,
+              activities: cachedActivities,
+              gifts: cachedGifts,
+              registrations: cachedRegistrations,
+              serviceRecords: cachedServiceRecords,
+              redemptions: cachedRedemptions,
+              pointsHistory: cachedPointsHistory,
+              issues: cachedIssues,
+            })
+          );
+        } catch {
+          // ignore storage quota errors
+        }
+      }
+
       notifySubscribers();
       return true;
     }
@@ -508,6 +563,109 @@ export async function fetchAndSyncAllData(): Promise<boolean> {
     return false;
   } finally {
     isFetchingAll = false;
+  }
+}
+
+export async function adminLogin(
+  account: string,
+  password?: string,
+  openid?: string
+): Promise<{ success: boolean; user?: User; message: string }> {
+  try {
+    const res = await fetch('/api/admin/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ account, password, openid }),
+    });
+    const data = await res.json();
+    return data;
+  } catch (e: any) {
+    return { success: false, message: '登录请求异常: ' + e.message };
+  }
+}
+
+export async function changeAdminPassword(
+  oldPassword: string,
+  newPassword: string
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const res = await fetch('/api/admin/change-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ oldPassword, newPassword }),
+    });
+    return await res.json();
+  } catch (e: any) {
+    return { success: false, message: '密码修改失败: ' + e.message };
+  }
+}
+
+export function getDatabaseBackupSnapshot() {
+  return {
+    exportedAt: new Date().toISOString(),
+    version: '2.5',
+    users: cachedUsers,
+    activities: cachedActivities,
+    gifts: cachedGifts,
+    registrations: cachedRegistrations,
+    serviceRecords: cachedServiceRecords,
+    redemptions: cachedRedemptions,
+    pointsHistory: cachedPointsHistory,
+    issues: cachedIssues,
+  };
+}
+
+export async function importDatabaseBackup(
+  backupData: any,
+  mode: 'replace' | 'merge' = 'merge'
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const res = await fetch('/api/db/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: backupData, mode }),
+    });
+    const data = await res.json();
+    await fetchAndSyncAllData();
+    return data;
+  } catch (e: any) {
+    return { success: false, message: '导入恢复失败: ' + e.message };
+  }
+}
+
+export async function confirmActivityCheckin(
+  registrationId: string,
+  adminName: string = '社区管理员'
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const res = await fetch(`/api/registrations/${registrationId}/checkin`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ adminName }),
+    });
+    const data = await res.json();
+    await fetchAndSyncAllData();
+    return data;
+  } catch (e: any) {
+    return { success: false, message: '签到核验失败: ' + e.message };
+  }
+}
+
+export async function confirmActivityCheckinAll(
+  activityId: string,
+  adminName: string = '社区管理员'
+): Promise<{ success: boolean; count?: number; message: string }> {
+  try {
+    const res = await fetch(`/api/activities/${activityId}/checkin-all`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ adminName }),
+    });
+    const data = await res.json();
+    await fetchAndSyncAllData();
+    return data;
+  } catch (e: any) {
+    return { success: false, message: '批量签到失败: ' + e.message };
   }
 }
 
@@ -948,6 +1106,19 @@ export async function updateGift(giftId: string, updates: Partial<Gift>) {
   }).catch(() => {});
 }
 
+export async function deleteGift(giftId: string): Promise<{ success: boolean; message?: string }> {
+  cachedGifts = cachedGifts.filter(g => g.id !== giftId);
+  callbacks.gifts.forEach(cb => cb([...cachedGifts]));
+  try {
+    const res = await fetch(`/api/gifts/${giftId}`, {
+      method: 'DELETE',
+    });
+    return await res.json();
+  } catch {
+    return { success: true, message: '已删除礼品' };
+  }
+}
+
 export async function redeemGift(
   arg1: string | User, 
   arg2: string | Gift
@@ -1328,17 +1499,26 @@ export async function mockConfirmScanLogin(ticket: string, customName?: string):
   }
 }
 
-export async function wechatLogin(code?: string, openidOrData?: { name?: string; avatar?: string; openid?: string } | string): Promise<WechatLoginResponse> {
+export async function wechatLogin(
+  code?: string,
+  openidOrData?: { name?: string; customName?: string; avatar?: string; avatarUrl?: string; openid?: string } | string
+): Promise<WechatLoginResponse> {
   try {
     let payload: any = {};
     if (typeof openidOrData === 'string') {
-      if (openidOrData.startsWith('wx_') || openidOrData.startsWith('mock_')) {
-        payload.openid = openidOrData;
+      const trimmed = openidOrData.trim();
+      // If code is not provided, a string second argument is the saved openid (real WeChat openids start with 'o')
+      if (!code || trimmed.startsWith('o') || trimmed.startsWith('wx_') || trimmed.startsWith('mock_') || trimmed.startsWith('mp_')) {
+        payload.openid = trimmed;
       } else {
-        payload.name = openidOrData;
+        payload.name = trimmed;
       }
     } else if (openidOrData) {
-      payload = openidOrData;
+      payload = {
+        ...openidOrData,
+        customName: openidOrData.customName || openidOrData.name,
+        avatarUrl: openidOrData.avatarUrl || openidOrData.avatar,
+      };
     }
 
     const res = await fetch('/api/wechat/oauth/callback', {

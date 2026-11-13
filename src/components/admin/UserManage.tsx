@@ -35,7 +35,8 @@ import {
   History,
   Gift as GiftIcon,
   CalendarCheck,
-  Flag
+  Flag,
+  Download
 } from 'lucide-react';
 
 interface UserManageProps {
@@ -142,6 +143,32 @@ export const UserManage: React.FC<UserManageProps> = ({
       if (sortBy === 'name') return a.name.localeCompare(b.name, 'zh-CN');
       return (b.joinedDate || '').localeCompare(a.joinedDate || '');
     });
+
+  // Action: Export Volunteer Roster CSV
+  const handleExportUsersCSV = () => {
+    const headers = ['用户ID', '姓名/昵称', '身份角色', '社区荣誉头衔', '联系电话', '当前可用积分', '累计服务工时(h)', '微信绑定状态', '注册日期'];
+    const rows = filteredUsers.map(u => [
+      u.id,
+      `"${(u.name || '').replace(/"/g, '""')}"`,
+      u.role === 'admin' ? '社区管理员' : u.role === 'party_member' ? '党员志愿者' : '居民志愿者',
+      `"${(u.badge || '').replace(/"/g, '""')}"`,
+      getRealPhone(u.phone, u.id) || '未绑定',
+      u.points || 0,
+      u.totalHours || 0,
+      u.openid ? '已绑定微信' : '未绑定',
+      u.joinedDate || '2025-01-01',
+    ]);
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `社区注册志愿者与居民名册_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showLocalToast(`已成功导出 ${filteredUsers.length} 位用户档案表格！`);
+  };
 
   // Action: Open Create User Modal
   const handleOpenCreateModal = () => {
@@ -363,7 +390,16 @@ export const UserManage: React.FC<UserManageProps> = ({
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleExportUsersCSV}
+              className="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-slate-700 font-bold rounded-2xl text-xs sm:text-sm transition-all flex items-center space-x-1.5 cursor-pointer active:scale-95"
+              title="导出当前筛选的志愿者与居民名册 (Excel/CSV)"
+            >
+              <Download className="w-4 h-4 text-emerald-400" />
+              <span>导出志愿者名册 (CSV)</span>
+            </button>
             <button
               onClick={handleOpenCreateModal}
               className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-2xl text-xs sm:text-sm transition-all shadow-md shadow-amber-500/20 flex items-center space-x-1.5 cursor-pointer active:scale-95"

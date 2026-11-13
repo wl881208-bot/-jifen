@@ -11,20 +11,26 @@ import {
   MapPin, 
   Award, 
   Clock, 
-  Building 
+  Building,
+  Download,
+  CheckCircle2,
+  Sparkles
 } from 'lucide-react';
+import { confirmActivityCheckin, confirmActivityCheckinAll } from '../../lib/dataService';
 
 interface ActivityManageProps {
   activities: Activity[];
   registrations: Registration[];
-  onCreateActivity: (activityData: Omit<Activity, 'id' | 'createdAt' | 'signedCount'>) => Promise<string>;
-  onUpdateActivity: (activityId: string, updates: Partial<Activity>) => Promise<void>;
-  onDeleteActivity: (activityId: string) => Promise<void>;
+  currentUser?: { name: string } | null;
+  onCreateActivity: (activityData: Omit<Activity, 'id' | 'createdAt' | 'signedCount'>) => Promise<any>;
+  onUpdateActivity: (activityId: string, updates: Partial<Activity>) => Promise<any>;
+  onDeleteActivity: (activityId: string) => Promise<any>;
 }
 
 export const ActivityManage: React.FC<ActivityManageProps> = ({
   activities,
   registrations,
+  currentUser,
   onCreateActivity,
   onUpdateActivity,
   onDeleteActivity,
@@ -33,6 +39,48 @@ export const ActivityManage: React.FC<ActivityManageProps> = ({
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
   const [viewRegistrationsActivity, setViewRegistrationsActivity] = useState<Activity | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [checkingInId, setCheckingInId] = useState<string | null>(null);
+  const [checkinNotice, setCheckinNotice] = useState<string | null>(null);
+
+  const handleSingleCheckin = async (regId: string) => {
+    setCheckingInId(regId);
+    setCheckinNotice(null);
+    const res = await confirmActivityCheckin(regId, currentUser?.name || '社区管理员');
+    setCheckingInId(null);
+    setCheckinNotice(res.message);
+  };
+
+  const handleBatchCheckinAll = async (activityId: string) => {
+    setCheckingInId('ALL');
+    setCheckinNotice(null);
+    const res = await confirmActivityCheckinAll(activityId, currentUser?.name || '社区管理员');
+    setCheckingInId(null);
+    setCheckinNotice(res.message);
+  };
+
+  const handleExportActivityRegistrationsCSV = (act: Activity) => {
+    const actRegs = registrations.filter(r => r.activityId === act.id);
+    const headers = ['报名单号', '活动名称', '志愿者姓名', '联系电话', '预计工时(h)', '奖励积分', '报名时间', '签到发分状态'];
+    const rows = actRegs.map(r => [
+      r.id,
+      `"${act.title.replace(/"/g, '""')}"`,
+      `"${(r.userName || '').replace(/"/g, '""')}"`,
+      r.userPhone || '未绑定',
+      act.hours,
+      act.pointsReward,
+      r.signedAt,
+      r.status === 'completed' ? '已签到并发放工时积分' : '已报名待签到',
+    ]);
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `活动报名签到表_${act.title.slice(0, 12)}_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   // Form State
   const [formData, setFormData] = useState({
@@ -322,43 +370,106 @@ export const ActivityManage: React.FC<ActivityManageProps> = ({
         </div>
       )}
 
-      {/* VIEW REGISTERED RESIDENTS MODAL */}
+      {/* VIEW REGISTERED RESIDENTS & CHECK-IN MODAL */}
       {viewRegistrationsActivity && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-6 space-y-4 shadow-2xl animate-scale-up">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="font-bold text-slate-900 text-base">报名人员名单</h3>
-              <button onClick={() => setViewRegistrationsActivity(null)} className="p-1 text-slate-400 hover:text-slate-600">
+              <div>
+                <h3 className="font-bold text-slate-900 text-base">活动报名名单与现场签到发分</h3>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  确认志愿者到场后，可直接一键发放 <strong className="text-emerald-700">+{viewRegistrationsActivity.hours}h 工时</strong> 与 <strong className="text-red-600">+{viewRegistrationsActivity.pointsReward} 积分</strong>
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setViewRegistrationsActivity(null);
+                  setCheckinNotice(null);
+                }}
+                className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="space-y-2">
-              <div className="text-xs font-bold text-slate-800">{viewRegistrationsActivity.title}</div>
-              <div className="divide-y divide-slate-100 max-h-60 overflow-y-auto">
-                {registrations.filter(r => r.activityId === viewRegistrationsActivity.id).length === 0 ? (
-                  <div className="py-6 text-center text-slate-400 text-xs">暂无居民报名该活动</div>
-                ) : (
-                  registrations.filter(r => r.activityId === viewRegistrationsActivity.id).map((r) => (
-                    <div key={r.id} className="py-2.5 flex items-center justify-between text-xs">
-                      <div>
-                        <div className="font-bold text-slate-800">{r.userName}</div>
-                        <div className="text-[10px] text-slate-400">{r.userPhone}</div>
-                      </div>
-                      <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-semibold text-[10px]">
-                        {r.signedAt} 报名
-                      </span>
-                    </div>
-                  ))
+            <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-50 p-3 rounded-2xl border border-slate-200/80">
+              <div className="text-xs font-bold text-slate-800 truncate max-w-[220px] sm:max-w-xs">
+                {viewRegistrationsActivity.title}
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={() => handleExportActivityRegistrationsCSV(viewRegistrationsActivity)}
+                  className="px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-[11px] font-semibold flex items-center space-x-1 cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5 text-slate-600" />
+                  <span>导出签到表</span>
+                </button>
+                {registrations.some(r => r.activityId === viewRegistrationsActivity.id && r.status !== 'completed') && (
+                  <button
+                    type="button"
+                    disabled={checkingInId !== null}
+                    onClick={() => handleBatchCheckinAll(viewRegistrationsActivity.id)}
+                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[11px] font-bold flex items-center space-x-1 shadow-xs cursor-pointer disabled:opacity-50"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>{checkingInId === 'ALL' ? '批量发放中...' : '一键全员签到发分'}</span>
+                  </button>
                 )}
               </div>
             </div>
 
+            {checkinNotice && (
+              <div className="p-2.5 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl text-xs font-semibold flex items-center space-x-1.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>{checkinNotice}</span>
+              </div>
+            )}
+
+            <div className="divide-y divide-slate-100 max-h-72 overflow-y-auto pr-1">
+              {registrations.filter(r => r.activityId === viewRegistrationsActivity.id).length === 0 ? (
+                <div className="py-8 text-center text-slate-400 text-xs">暂无居民报名该活动</div>
+              ) : (
+                registrations
+                  .filter(r => r.activityId === viewRegistrationsActivity.id)
+                  .map((r) => (
+                    <div key={r.id} className="py-3 flex items-center justify-between gap-2 text-xs">
+                      <div className="min-w-0">
+                        <div className="font-bold text-slate-900 truncate">{r.userName}</div>
+                        <div className="text-[10px] text-slate-400">
+                          {r.userPhone ? `${r.userPhone} · ` : ''}报名于 {r.signedAt}
+                        </div>
+                      </div>
+                      <div className="shrink-0">
+                        {r.status === 'completed' ? (
+                          <span className="inline-flex items-center space-x-1 bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-xl font-bold text-[11px]">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>已签到发分 (+{viewRegistrationsActivity.pointsReward}分)</span>
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={checkingInId !== null}
+                            onClick={() => handleSingleCheckin(r.id)}
+                            className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-[11px] transition-colors cursor-pointer shadow-2xs disabled:opacity-50"
+                          >
+                            {checkingInId === r.id ? '发放中...' : '✅ 确认到场并发分'}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))
+              )}
+            </div>
+
             <button
-              onClick={() => setViewRegistrationsActivity(null)}
-              className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs"
+              onClick={() => {
+                setViewRegistrationsActivity(null);
+                setCheckinNotice(null);
+              }}
+              className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs cursor-pointer"
             >
-              关闭
+              关闭窗口
             </button>
           </div>
         </div>

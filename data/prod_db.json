@@ -5,6 +5,18 @@
   "wechatOAuthDomain": "test.skycloud.zone",
   "users": [
     {
+      "id": "user_wx_1794464019444",
+      "name": "Torres王",
+      "phone": "",
+      "avatar": "https://thirdwx.qlogo.cn/mmopen/vi_32/shCw3VpCGfx3dHav1lOyfJ9ib4wNk0ib3tUfQdqSn8nLd3iajVfWlOowlCeCql79Kic5HNfTmPJf9Us2kSFJzAicK4POwonKCm8hvq8sM0qalFib0/132",
+      "role": "resident",
+      "points": 0,
+      "totalHours": 0,
+      "badge": "微信社区新人",
+      "joinedDate": "2026-11-12",
+      "openid": "opfVW1NjP9mtg29-WiXTQyk1gClk"
+    },
+    {
       "id": "user_admin",
       "name": "王主任 (管理员)",
       "phone": "133****9999",

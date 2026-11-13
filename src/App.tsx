@@ -29,6 +29,7 @@ import {
   deleteActivity,
   createGift,
   updateGift,
+  deleteGift,
   redeemGift,
   verifyRedemptionCode,
   createUser,
@@ -83,7 +84,7 @@ export default function App() {
 
   // Navigation Tabs State
   const [residentTab, setResidentTab] = useState<ResidentTab>('home');
-  const [adminTab, setAdminTab] = useState<AdminTab>('verification_admin');
+  const [adminTab, setAdminTab] = useState<AdminTab>('users_admin');
 
   // Mobile Shell Simulation Toggle (Default FALSE for standard responsive H5 Web)
   const [isMobileSimulated, setIsMobileSimulated] = useState<boolean>(false);
@@ -254,12 +255,14 @@ export default function App() {
         const savedOpenid = localStorage.getItem('wechat_openid');
         const cachedUserJson = localStorage.getItem('cached_user_profile');
 
+        let cachedProfileObj: User | null = null;
         if (cachedUserJson) {
           try {
             const parsed = JSON.parse(cachedUserJson);
             if (parsed && parsed.id) {
               const isTest = (parsed.id === 'user_1' || parsed.id === 'user_2' || parsed.id === 'user_3' || Boolean(parsed.openid?.startsWith('mock_'))) && parsed.role !== 'admin';
               if (activeEnv !== 'production' || !isTest) {
+                cachedProfileObj = parsed;
                 setCurrentUser(parsed);
               }
             }
@@ -270,7 +273,11 @@ export default function App() {
 
         if (savedOpenid && (!savedOpenid.startsWith('mock_') || activeEnv === 'test')) {
           try {
-            const wxRes = await wechatLogin(undefined, savedOpenid);
+            const wxRes = await wechatLogin(undefined, {
+              openid: savedOpenid,
+              customName: cachedProfileObj?.name,
+              avatarUrl: cachedProfileObj?.avatar,
+            });
             if (wxRes.success && wxRes.user) {
               setCurrentUser(wxRes.user);
               localStorage.setItem('cached_user_profile', JSON.stringify(wxRes.user));
@@ -368,6 +375,9 @@ export default function App() {
   // User Login Success Handler
   const handleLoginSuccess = (user: User) => {
     setCurrentUser(user);
+    localStorage.setItem('logged_in_user_id', user.id);
+    localStorage.setItem('cached_user_profile', JSON.stringify(user));
+    if (user.openid) localStorage.setItem('wechat_openid', user.openid);
     showToast(`欢迎回来，${user.name}！已同步您的志愿档案。`);
   };
 
@@ -550,6 +560,7 @@ export default function App() {
           onAuditServiceRecord={auditServiceRecord}
           onCreateGift={createGift}
           onUpdateGift={updateGift}
+          onDeleteGift={deleteGift}
           onVerifyRedemptionCode={handleVerifyRedemptionCode}
           onCreateUser={createUser}
           onUpdateUser={updateUser}

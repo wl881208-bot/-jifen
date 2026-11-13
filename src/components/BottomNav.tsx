@@ -122,6 +122,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
 
   // Admin Navigation Bar
   const adminNavItems = [
+    { id: 'users_admin' as AdminTab, label: '注册用户管理', icon: Users },
     { id: 'activities_admin' as AdminTab, label: '发布与管理活动', icon: PlusCircle },
     { 
       id: 'audits_admin' as AdminTab, 
@@ -132,7 +133,6 @@ export const BottomNav: React.FC<BottomNavProps> = ({
     { id: 'issues_admin' as AdminTab, label: '随手拍工单治理', icon: Camera },
     { id: 'gifts_admin' as AdminTab, label: '礼品与库存管理', icon: Gift },
     { id: 'verification_admin' as AdminTab, label: '现场领奖核销', icon: QrCode },
-    { id: 'users_admin' as AdminTab, label: '用户与权限设置', icon: Users },
   ];
 
   if (isMobileSimulated) {

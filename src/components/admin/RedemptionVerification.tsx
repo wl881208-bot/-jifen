@@ -89,6 +89,28 @@ export const RedemptionVerification: React.FC<RedemptionVerificationProps> = ({
     }
   };
 
+  const handleLaunchScanner = () => {
+    const wxObj = (window as any).wx;
+    if (wxObj && typeof wxObj.scanQRCode === 'function') {
+      wxObj.scanQRCode({
+        needResult: 1,
+        scanType: ['qrCode', 'barCode'],
+        success: (res: any) => {
+          const raw = (res.resultStr || '').trim();
+          const codeMatch = raw.match(/VOL-[A-Z0-9-]+/i);
+          const finalCode = codeMatch ? codeMatch[0].toUpperCase() : raw.toUpperCase();
+          setInputCode(finalCode);
+          handleVerify(finalCode);
+        },
+        fail: () => {
+          setIsSimulatingCamera(!isSimulatingCamera);
+        },
+      });
+      return;
+    }
+    setIsSimulatingCamera(!isSimulatingCamera);
+  };
+
   const handleSimulateScanCode = (code: string) => {
     setInputCode(code);
     setIsSimulatingCamera(false);
@@ -119,11 +141,11 @@ export const RedemptionVerification: React.FC<RedemptionVerificationProps> = ({
           </div>
 
           <button
-            onClick={() => setIsSimulatingCamera(!isSimulatingCamera)}
-            className="bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold text-xs px-3.5 py-2 sm:py-2.5 rounded-xl transition-all flex items-center justify-center space-x-1.5 shadow-md shrink-0 whitespace-nowrap self-start sm:self-auto"
+            onClick={handleLaunchScanner}
+            className="bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold text-xs px-3.5 py-2 sm:py-2.5 rounded-xl transition-all flex items-center justify-center space-x-1.5 shadow-md shrink-0 whitespace-nowrap self-start sm:self-auto cursor-pointer"
           >
             <Camera className="w-4 h-4 shrink-0" />
-            <span>{isSimulatingCamera ? '关闭摄像头扫码' : '开启摄像头扫码'}</span>
+            <span>{isSimulatingCamera ? '关闭扫码核销面板' : '微信扫一扫 / 快捷核销'}</span>
           </button>
         </div>
 
@@ -299,7 +321,7 @@ export const RedemptionVerification: React.FC<RedemptionVerificationProps> = ({
                       </span>
                     </div>
                     <div className="text-[11px] text-slate-600 leading-tight">
-                      兑换居民: <span className="font-semibold text-slate-800">{red.userName}</span> ({red.userPhone}) · <span className="font-bold text-red-600">{red.pointsCost}积分</span>
+                      兑换居民: <span className="font-semibold text-slate-800">{red.userName}</span>{red.userPhone && !/^138\*{4}\d{4}$/.test(red.userPhone) ? ` (${red.userPhone})` : ''} · <span className="font-bold text-red-600">{red.pointsCost}积分</span>
                     </div>
                     <div className="text-[10px] text-slate-400">兑换时间: {red.createdAt}</div>
                   </div>
